@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دنیای من</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bar: #2a1a4a;
+    --bar-soft: #3b2765;
+    --gold: #ffc145;
+    --paper: #f4f2fb;
+    --ink: #221838;
+    --muted: #6b6485;
+    --line: #d9d3ee;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Vazirmatn", Tahoma, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bar);
+  }
+  .search {
+    flex: 1;
+    min-width: 0;
+    max-width: 440px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bar-soft);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    padding: 0 14px;
+    height: 44px;
+  }
+  .search:focus-within { border-color: var(--gold); }
+  .search svg { flex: none; width: 20px; height: 20px; stroke: #cfc6ea; }
+  .search input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: 0;
+    outline: 0;
+    color: #fff;
+    font: inherit;
+    font-size: 15px;
+  }
+  .search input::placeholder { color: #a99fcb; }
+
+  .icon-btn {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--bar-soft);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s;
+  }
+  .icon-btn:hover { background: #4d3680; }
+  .icon-btn svg { width: 22px; height: 22px; stroke: #fff; }
+  .icon-btn:focus-visible,
+  .menu a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  /* Title sits on the physical left */
+  .brand {
+    margin-inline-start: auto;
+    font-family: "Lalezar", "Vazirmatn", sans-serif;
+    font-size: clamp(30px, 8vw, 48px);
+    line-height: 1;
+    color: var(--gold);
+    white-space: nowrap;
+    padding-inline: 4px;
+    text-shadow: 0 2px 0 rgba(0,0,0,.25);
+  }
+
+  /* ---------- Menu ---------- */
+  .menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    inset-inline-start: 16px;
+    inset-inline-end: auto;
+    width: 220px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(42, 26, 74, .18);
+    padding: 6px;
+    display: none;
+  }
+  .menu.open { display: block; }
+  .menu a {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: var(--ink);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .menu a:hover { background: var(--paper); }
+
+  /* ---------- Page body ---------- */
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 56px 20px;
+  }
+  main h1 {
+    font-family: "Lalezar", "Vazirmatn", sans-serif;
+    font-size: clamp(34px, 7vw, 52px);
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+  main p { color: var(--muted); line-height: 2; font-size: 17px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <form class="search" role="search" onsubmit="return false">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input type="search" placeholder="جستجو..." aria-label="جستجو">
+  </form>
+
+  <button class="icon-btn" id="menuBtn" aria-label="منو" aria-expanded="false" aria-controls="menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+
+  <a class="icon-btn" href="#" aria-label="خانه">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
+  </a>
+
+  <div class="brand">دنیای من</div>
+
+  <nav class="menu" id="menu" aria-label="منوی اصلی">
+    <a href="#">درباره من</a>
+    <a href="#">رزومه</a>
+    <a href="#">پروژه‌ها</a>
+    <a href="#">تماس با من</a>
+  </nav>
+</header>
+
+<main>
+  <h1>خوش اومدی</h1>
+  <p>این صفحه اول دنیای منه. بخش‌های بعدی رو کم‌کم اضافه می‌کنیم.</p>
+</main>
+
+<script>
+  const btn = document.getElementById('menuBtn');
+  const menu = document.getElementById('menu');
+  btn.addEventListener('click', () => {
+    const open = menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open);
+  });
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+</script>
+</body>
+</html>
