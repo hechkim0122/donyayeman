@@ -145,11 +145,15 @@
     <form id="signup" role="tabpanel" aria-labelledby="tab-signup" novalidate>
       <h1 data-en="Create account">ساخت حساب جدید</h1>
       <p class="sub" data-en="Join in a few seconds.">در چند ثانیه عضو شو.</p>
-      <p class="hint" id="firstHint" data-en="This will be the first account, so you become the site admin." hidden>این اولین حسابه، پس مدیر سایت می‌شی.</p>
       <div class="field">
         <label for="s-name" data-en="Name">نام</label>
         <div class="inp"><input id="s-name" name="name" type="text" autocomplete="name" data-en-ph="Your name" placeholder="نام شما"></div>
         <div class="err" data-for="s-name"></div>
+      </div>
+      <div class="field">
+        <label for="s-user" data-en="ID">آیدی</label>
+        <div class="inp"><input id="s-user" class="ltr" name="username" type="text" autocomplete="username" placeholder="your_id" inputmode="latin" autocapitalize="none" spellcheck="false"></div>
+        <div class="err" data-for="s-user"></div>
       </div>
       <div class="field">
         <label for="s-email" data-en="Email">ایمیل</label>
@@ -196,7 +200,7 @@
       <div class="switch"><span data-en="New here?">تازه اومدی؟</span> <button type="button" data-go="signup" data-en="Sign up">ثبت‌نام</button></div>
     </form>
   </div>
-  <p class="demo" id="demoNote" data-en="For now, data is stored only in this browser. The first account becomes the admin.">فعلاً اطلاعات فقط روی همین مرورگر ذخیره می‌شه. اولین حساب ساخته‌شده، مدیر سایته.</p>
+  <p class="demo" id="demoNote" data-en="For now, data is stored only in this browser.">فعلاً اطلاعات فقط روی همین مرورگر ذخیره می‌شه.</p>
 </main>
 
 <script src="api.js"></script>
@@ -206,6 +210,8 @@
 
   const T = {
     name: ['نام رو وارد کن.', 'Please enter your name.'],
+    userEmpty: ['آیدی رو وارد کن.', 'Please enter your ID.'],
+    userBad: ['آیدی باید ۳ تا ۳۰ کاراکتر باشه و فقط حروف انگلیسی، عدد، _ و . داشته باشه.', 'ID must be 3–30 characters: English letters, numbers, _ and . only.'],
     emailEmpty: ['ایمیل رو وارد کن.', 'Please enter your email.'],
     emailBad: ['ایمیل معتبر نیست.', 'Email is not valid.'],
     passEmpty: ['رمز عبور رو وارد کن.', 'Please enter your password.'],
@@ -213,6 +219,7 @@
     passMismatch: ['رمزها یکسان نیستن.', 'Passwords do not match.'],
     okSignup: ['حساب ساخته شد. در حال رفتن به سایت...', 'Account created. Taking you to the site...'],
     okLogin: ['وارد شدی. در حال رفتن به سایت...', 'Logged in. Taking you to the site...'],
+    errUserTaken: ['این آیدی قبلاً گرفته شده.', 'This ID is already taken.'],
     errTaken: ['این ایمیل قبلاً ثبت شده. وارد شو.', 'This email is already registered. Log in instead.'],
     errBad: ['ایمیل یا رمز عبور اشتباهه.', 'Email or password is wrong.'],
     errInvalid: ['اطلاعات واردشده معتبر نیست.', 'The information entered is not valid.'],
@@ -287,6 +294,8 @@
     return !key;
   };
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const userRe = /^[a-z0-9_.]{3,30}$/;
+  const userVal = () => val('s-user').replace(/^@/, '').toLowerCase();
   const val = (id) => document.getElementById(id).value.trim();
   const raw = (id) => document.getElementById(id).value;
 
@@ -316,7 +325,7 @@
         setTimeout(() => { location.href = 'index.html'; }, 900);
       } catch (e) {
         const c = e && (e.code || e.message);
-        showMsg(form, c === 'email_taken' ? 'errTaken' : c === 'bad_credentials' ? 'errBad' : c === 'invalid' ? 'errInvalid' : 'errGeneric', true);
+        showMsg(form, c === 'username_taken' ? 'errUserTaken' : c === 'email_taken' ? 'errTaken' : c === 'bad_credentials' ? 'errBad' : c === 'invalid' ? 'errInvalid' : 'errGeneric', true);
         btn.disabled = false;
       }
     });
@@ -325,10 +334,11 @@
 
   handle(document.getElementById('signup'), () => [
     ['s-name', val('s-name') ? null : 'name'],
+    ['s-user', !userVal() ? 'userEmpty' : (userRe.test(userVal()) ? null : 'userBad')],
     ['s-email', !val('s-email') ? 'emailEmpty' : (emailRe.test(val('s-email')) ? null : 'emailBad')],
     ['s-pass', raw('s-pass').length >= 8 ? null : (raw('s-pass') ? 'passShort' : 'passEmpty')],
     ['s-pass2', raw('s-pass2') && raw('s-pass2') === raw('s-pass') ? null : 'passMismatch']
-  ], () => Api.auth.register({ name: val('s-name'), email: val('s-email'), password: raw('s-pass') }), 'okSignup');
+  ], () => Api.auth.register({ name: val('s-name'), username: userVal(), email: val('s-email'), password: raw('s-pass') }), 'okSignup');
 
   handle(document.getElementById('login'), () => [
     ['l-email', !val('l-email') ? 'emailEmpty' : (emailRe.test(val('l-email')) ? null : 'emailBad')],
@@ -337,7 +347,7 @@
 
   // ---------- اگه از قبل وارد شده بود ----------
   function renderWho() {
-    document.getElementById('whoText').textContent = t('as') + ' ' + who.name + ' (' + who.email + ')';
+    document.getElementById('whoText').textContent = t('as') + ' ' + who.name + ' (@' + (who.username || who.email.split('@')[0]) + ')';
     document.getElementById('whoRole').textContent = who.role === 'admin' ? t('admin') : t('user');
   }
   async function loadWho() {
@@ -345,7 +355,6 @@
     document.getElementById('whoBox').hidden = !who;
     document.getElementById('formBox').hidden = !!who;
     if (who) renderWho();
-    try { document.getElementById('firstHint').hidden = who || !(await Api.auth.firstUser()); } catch (e) { /* مهم نیست */ }
   }
   document.getElementById('whoOut').addEventListener('click', async () => {
     try { await Api.auth.logout(); } catch (e) { /* مهم نیست */ }

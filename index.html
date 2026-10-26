@@ -2449,7 +2449,7 @@
   function updateAuthUI() {
     const u = state.user, adm = isAdmin();
     document.querySelector('.p-name').textContent = u ? u.name : tr('نام کاربر');
-    document.querySelector('.p-id').textContent = u ? '@' + u.email.split('@')[0] : '@user_id';
+    document.querySelector('.p-id').textContent = u ? '@' + (u.username || u.email.split('@')[0]) : '@user_id';
     document.getElementById('roleBadge').hidden = !adm;
     document.querySelectorAll('[data-go]').forEach((b) => { b.hidden = !!u; });
     document.getElementById('logoutBtn').hidden = !u;

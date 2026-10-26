@@ -18,6 +18,9 @@
 
   var CONFIG = Object.assign({ mode: 'local', baseUrl: '' }, window.DM_CONFIG || {});
   var NS = 'dm:v1:';
+  // آیدی مالک سایت: فقط حسابی که با همین آیدی ثبت‌نام کنه مدیره
+  var OWNER_ID = 'gh_mir';
+  var USERNAME_RE = /^[a-z0-9_.]{3,30}$/;
 
   function fail(code) { var e = new Error(code); e.code = code; return e; }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -44,7 +47,8 @@
       data.forEach(function (b) { h ^= b; h = Math.imul(h, 16777619); });
       return 'f' + (h >>> 0).toString(16);
     }
-    function pub(u) { return { id: u.id, name: u.name, email: u.email, role: u.role }; }
+    function roleOf(u) { return u.username === OWNER_ID ? 'admin' : 'user'; }
+    function pub(u) { return { id: u.id, name: u.name, username: u.username || '', email: u.email, role: roleOf(u) }; }
     function currentUser() {
       var s = read('session', null);
       if (!s) return null;
@@ -52,25 +56,25 @@
     }
     function needAdmin() {
       var u = currentUser();
-      if (!u || u.role !== 'admin') throw fail('forbidden');
+      if (!u || roleOf(u) !== 'admin') throw fail('forbidden');
       return u;
     }
 
     var auth = {
       async me() { var u = currentUser(); return u ? pub(u) : null; },
-      // اولین حساب ساخته‌شده مدیر سایت می‌شه
-      async firstUser() { return read('users', []).length === 0; },
       async register(d) {
         var name = String(d.name || '').trim();
+        var username = String(d.username || '').trim().replace(/^@/, '').toLowerCase();
         var email = String(d.email || '').trim().toLowerCase();
         var pass = String(d.password || '');
-        if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || pass.length < 8) throw fail('invalid');
+        if (!name || !USERNAME_RE.test(username) || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || pass.length < 8) throw fail('invalid');
         var users = read('users', []);
+        if (users.some(function (u) { return u.username === username; })) throw fail('username_taken');
         if (users.some(function (u) { return u.email === email; })) throw fail('email_taken');
         var salt = uid() + uid();
         var user = {
-          id: uid(), name: name, email: email, salt: salt, passHash: await hash(salt, pass),
-          role: users.length === 0 ? 'admin' : 'user', createdAt: Date.now()
+          id: uid(), name: name, username: username, email: email, salt: salt, passHash: await hash(salt, pass),
+          createdAt: Date.now()
         };
         users.push(user);
         write('users', users);
@@ -382,8 +386,9 @@
 
   /* ----------------------------- حالت remote -----------------------------
      قرارداد سرور (همه JSON، کوکی نشست با credentials: 'include'):
-       GET    /api/auth/me                 -> { user: {id,name,email,role} | null }
-       POST   /api/auth/register {name,email,password} -> { user }   خطا: { error: 'email_taken' | 'invalid' }
+       GET    /api/auth/me                 -> { user: {id,name,username,email,role} | null }
+       POST   /api/auth/register {name,username,email,password} -> { user }   خطا: { error: 'username_taken' | 'email_taken' | 'invalid' }
+                                      (سرور باید role رو فقط 'admin' کنه وقتی username === 'gh_mir')
        POST   /api/auth/login    {email,password}      -> { user }   خطا: { error: 'bad_credentials' }
        POST   /api/auth/logout                          -> {}
        GET    /api/items?cat=movies&fresh=1             -> { items: [Item] }
@@ -421,7 +426,6 @@
       mode: 'remote',
       auth: {
         async me() { return (await req('GET', '/api/auth/me')).user || null; },
-        async firstUser() { return false; },
         async register(d) { return (await req('POST', '/api/auth/register', d)).user; },
         async login(d) { return (await req('POST', '/api/auth/login', d)).user; },
         async logout() { await req('POST', '/api/auth/logout'); }
