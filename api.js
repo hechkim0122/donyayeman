@@ -245,7 +245,7 @@
       var bg = String(s.bg || '');
       if (bg && !IMG_RE.test(bg)) throw fail('invalid');
       var ids = Array.isArray(s.ids) ? s.ids.map(String).slice(0, 80) : [];
-      return { cat: 'movies', kind: s.kind === 'collection' ? 'collection' : 'row', title: title, genre: genre, ids: ids, bg: bg };
+      return { cat: s.cat === 'animations' ? 'animations' : 'movies', kind: s.kind === 'collection' ? 'collection' : s.kind === 'single' ? 'single' : 'row', title: title, genre: genre, ids: s.kind === 'single' ? ids.slice(0, 1) : ids, bg: bg };
     }
     function seedShelves() {
       seedItems();
@@ -406,7 +406,7 @@
               genre('' یا یکی از ژانرها)، imdb('' یا ۰ تا ۱۰ مثل 7.8)، country(حداکثر ۴۰ حرف)، titleEn, duration('1:48:03' یا '48:03')، age('همه سنین' | '+7' | '+13' | '+16' | '+18')، lang(مثلاً دوبله فارسی)،
               banner(url عکس افقی؛ اگه پر باشه تو اسلایدر فیلم‌ها نمایش داده می‌شه) }
      ژانرها: اکشن، درام، کمدی، ترسناک، علمی و تخیلی، مستند، عاشقانه، خانواده، ماجراجویی، جنایی
-     Shelf = { id, cat:'movies', kind:'collection'|'row', title(حداکثر ۸۰), genre('' یا ژانر: همه‌ی فیلم‌های اون ژانر خودکار), ids:[itemId] (انتخاب دستی), bg(url عکس پس‌زمینه‌ی کالکشن), createdAt, updatedAt }
+     Shelf = { id, cat:'movies'|'animations', kind:'collection'|'row'|'single'(یک فیلم با پوستر عریض), title(حداکثر ۸۰), genre('' یا ژانر: همه‌ی فیلم‌های اون ژانر خودکار), ids:[itemId] (انتخاب دستی), bg(url عکس پس‌زمینه‌ی کالکشن), createdAt, updatedAt }
      دسته‌ها: movies series animations anime games music apps
      ---------------------------------------------------------------------- */
   var remote = (function () {
