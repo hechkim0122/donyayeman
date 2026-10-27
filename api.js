@@ -164,6 +164,44 @@
         });
         write('seeded-movies-v5', true);
       }
+      // نمونه برای همه‌ی بخش‌ها (یک بار اضافه می‌شن؛ بعد از حذف برنمی‌گردن)
+      if (!read('seeded-demo-v1', false)) {
+        all = all || read('items', []);
+        var shl = read('shelves', []), nS = SAMPLE_MOVIES.length, q = 0;
+        var epT = ['آغاز', 'راز', 'مرز', 'بازگشت', 'سقوط', 'پایان'];
+        var eps = function (c) { return Array.from({ length: c }, function (_, i) { return { t: 'قسمت ' + (i + 1) + ' - ' + epT[i % 6], d: (40 + i * 3) + ':00', link: 'https://example.com/watch', dl: 'https://example.com/ep.mp4' }; }); };
+        var NV = { imdb: '', lang: '', age: '', country: '', genre: '' };
+        var demo = function (cat, title, genre, country, extra) {
+          var m = SAMPLE_MOVIES[q++ % nS];
+          var o = { id: 'demo-' + cat + '-' + q, cat: cat, title: title, desc: 'این یک نمونه است تا چیدمان بخش رو ببینی. از پنل مدیر می‌تونی ویرایشش کنی یا حذفش کنی.',
+                    year: String(2020 + q % 5), cover: m.cover, banner: m.banner || '', link: 'https://example.com/watch', file: null, fresh: false,
+                    genre: genre, imdb: (6.5 + (q % 30) / 10).toFixed(1), country: country, titleEn: '', duration: '', age: '+13', lang: 'دوبله فارسی', seasons: [],
+                    createdAt: 900 - q, updatedAt: 900 - q };
+          Object.assign(o, extra || {}); all.push(o); return o.id;
+        };
+        var sers = [demo('series', 'شهر بی‌خواب', 'درام', 'ایران', { titleEn: 'Sleepless City', seasons: [{ eps: eps(5) }, { eps: eps(4) }] }),
+          demo('series', 'مأموریت فراموش‌شده', 'جنایی', 'آمریکا', { titleEn: 'Forgotten Mission', seasons: [{ eps: eps(6) }, { eps: eps(3) }] }),
+          demo('series', 'خانه‌ی کوهستان', 'خانواده', 'ایران', { seasons: [{ eps: eps(4) }] }),
+          demo('series', 'ردپای ستاره', 'علمی و تخیلی', 'کره جنوبی', { seasons: [{ eps: eps(5) }, { eps: eps(5) }] })];
+        var anims = [demo('animations', 'ماجراجویی در جنگل جادویی', 'ماجراجویی', 'آمریکا', { age: 'همه سنین', duration: '01:32:00' }),
+          demo('animations', 'ربات کوچولو', 'علمی و تخیلی', 'ژاپن', { age: 'همه سنین', duration: '01:25:40' }),
+          demo('animations', 'شهر کوچک‌ها', 'خانواده', 'فرانسه', { age: 'همه سنین', duration: '01:18:20' }),
+          demo('animations', 'گربه‌ی خوش‌شانس', 'کمدی', 'آمریکا', { age: 'همه سنین', duration: '01:40:10' }),
+          demo('animations', 'سفر به اعماق', 'ماجراجویی', 'کانادا', { age: '+7', duration: '01:36:05' }),
+          demo('animations', 'جشن ستاره‌ها', 'خانواده', 'ایران', { age: 'همه سنین', duration: '01:22:00' })];
+        demo('anime', 'سامورایی ابرها', '', 'ژاپن', NV); demo('anime', 'باغ شیشه‌ای', '', 'ژاپن', NV);
+        demo('games', 'نبرد کهکشان', '', '', NV); demo('games', 'مزرعه‌ی شاد', '', '', NV);
+        demo('music', 'آلبوم ستاره‌ها', '', '', NV); demo('music', 'موسیقی آرامش', '', '', NV);
+        demo('apps', 'ویرایشگر عکس', '', '', NV); demo('apps', 'مدیریت فایل', '', '', NV);
+        [['series', sers], ['animations', anims]].forEach(function (p, k) {
+          shl.push({ id: 'demo-shelf-' + p[0] + '-coll', cat: p[0], kind: 'collection', title: 'مجموعه‌ی ویژه', genre: '', ids: p[1].slice(0, 4), bg: '', createdAt: 3000 + k * 10, updatedAt: t },
+                   { id: 'demo-shelf-' + p[0] + '-single', cat: p[0], kind: 'single', title: 'جدیدترین‌ها', genre: '', ids: [p[1][0]], bg: '', createdAt: 3001 + k * 10, updatedAt: t },
+                   { id: 'demo-shelf-' + p[0] + '-row', cat: p[0], kind: 'row', title: 'پیشنهاد ما', genre: '', ids: p[1].slice(1), bg: '', createdAt: 3002 + k * 10, updatedAt: t });
+        });
+        shl.push({ id: 'demo-shelf-movies-single', cat: 'movies', kind: 'single', title: 'فیلم هفته', genre: '', ids: ['sample-scifi'], bg: '', createdAt: 3100, updatedAt: t });
+        write('shelves', shl);
+        write('seeded-demo-v1', true);
+      }
       if (all) write('items', all);
     }
     var CATS = ['movies', 'series', 'animations', 'anime', 'games', 'music', 'apps'];
@@ -192,6 +230,12 @@
       var lang = String(it.lang || '').trim().slice(0, 40);
       var banner = String(it.banner || '');
       if (banner && !IMG_RE.test(banner)) throw fail('invalid');
+      var seasons = (Array.isArray(it.seasons) ? it.seasons : []).slice(0, 30).map(function (s) {
+        return { eps: (s && Array.isArray(s.eps) ? s.eps : []).slice(0, 200).map(function (e) {
+          var d = String(e.d || '').trim(), lk = String(e.link || '').trim(), dl = String(e.dl || '').trim();
+          return { t: String(e.t || '').trim().slice(0, 120), d: /^\d{1,2}(:\d{2}){0,2}$/.test(d) ? d : '', link: HTTP_RE.test(lk) ? lk : '', dl: HTTP_RE.test(dl) ? dl : '' };
+        }).filter(function (e) { return e.t; }) };
+      }).filter(function (s) { return s.eps.length; });
       var file = null;
       if (it.file && it.file.name) {
         file = { name: String(it.file.name).slice(0, 200), size: Number(it.file.size) || 0,
@@ -201,7 +245,7 @@
       return { cat: it.cat, title: title, desc: String(it.desc || '').trim().slice(0, 2000), year: year,
                cover: cover, link: link, file: file, fresh: !!it.fresh,
                genre: genre, imdb: imdb, country: country, banner: banner,
-               titleEn: titleEn, duration: duration, age: age, lang: lang };
+               titleEn: titleEn, duration: duration, age: age, lang: lang, seasons: seasons };
     }
     var items = {
       async list(q) {

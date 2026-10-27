@@ -902,6 +902,24 @@
   .mv-tab { flex: none; padding: 12px 16px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
   .mv-tab[aria-selected="true"] { color: #fff; border-bottom-color: #e8144f; }
   .mv-full { margin: 0; line-height: 2.05; color: #e8e0fa; font-size: 15px; white-space: pre-wrap; }
+  .ep-top { margin-bottom: 8px; }
+  .ep-sel { height: 42px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-weight: 700; }
+  .ep-sel option { color: #111; }
+  .ep { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+  .ep-th { position: relative; flex: none; width: 44%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; display: block; background: linear-gradient(160deg, #3b1d6e, #1b1240); }
+  .ep-th img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ep-play { position: absolute; inset: 0; margin: auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.5); color: #fff; }
+  .ep-play svg { width: 16px; height: 16px; }
+  .ep .bdg { position: absolute; bottom: 6px; inset-inline-end: 6px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.6); color: #fff; }
+  .ep .bdg svg { width: 14px; height: 14px; stroke: currentColor; }
+  .ep-i { flex: 1; min-width: 0; }
+  .ep-t { font-weight: 800; line-height: 1.7; color: #fff; }
+  .ep-d { color: var(--muted); font-size: 13px; direction: ltr; text-align: end; }
+  .ep-dl { flex: none; width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; background: rgba(255,255,255,.1); color: #fff; }
+  .ep-dl svg { width: 20px; height: 20px; stroke: currentColor; }
+  .ser-s { display: grid; gap: 8px; margin: 10px 0; padding: 10px; border: 1px solid var(--line); border-radius: 14px; }
+  .ser-h { display: flex; justify-content: space-between; align-items: center; }
+  .ser-e { display: grid; gap: 6px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
   .cm { display: grid; gap: 12px; }
   .cm-i { display: flex; gap: 10px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.07); }
   .cm-av { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #e8144f; color: #fff; font-weight: 800; }
@@ -1759,7 +1777,7 @@
     apps:       { fa: 'برنامه',    tag: 'برنامه',  cls: 't-app',    sub: 'ابزار و نرم‌افزار' }
   };
   const GENRES = ['اکشن', 'درام', 'کمدی', 'ترسناک', 'علمی و تخیلی', 'مستند', 'عاشقانه', 'خانواده', 'ماجراجویی', 'جنایی'];
-  const RICH = (c) => c === 'movies' || c === 'animations';
+  const RICH = (c) => c === 'movies' || c === 'animations' || c === 'series';
   const state = { user: null, site: null, items: [], shelves: [], editing: false };
   const isAdmin = () => !!(state.user && state.user.role === 'admin');
   const SVG = (inner, w) => '<svg viewBox="0 0 24 24" fill="none" stroke-width="' + (w || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
@@ -2252,12 +2270,27 @@
           el('span', { class: 'cm-av' }, String(c.n || '?').slice(0, 1)),
           el('div', {}, el('div', { class: 'cm-n' }, String(c.n || ''), ' ', el('span', { class: 'cm-t' }, new Date(c.t).toLocaleDateString('fa-IR'))), el('div', { class: 'cm-x' }, String(c.x || ''))))) : [el('p', { class: 'empty' }, tr('هنوز دیدگاهی نیست.'))]));
     };
-    const tabDefs = [['cm', 'دیدگاه‌ها'], ['rel', 'فیلم‌های مرتبط'], ['ds', 'توضیحات']];
+    const isSer = it.cat === 'series' && it.seasons && it.seasons.length;
+    let curSeason = 0;
+    const drawEp = () => {
+      const ss = it.seasons || [], s = ss[curSeason] || { eps: [] }, thumb = it.banner || it.cover, dub = /دوبله/.test(it.lang || '');
+      const sel = el('select', { class: 'ep-sel', 'aria-label': tr('فصل'), onchange: (e) => { curSeason = Number(e.target.value); drawEp(); } },
+        ss.map((x, i) => el('option', { value: i, selected: i === curSeason }, tr('فصل') + ' ' + (i + 1) + ' ' + tr('از') + ' ' + ss.length)));
+      panel.replaceChildren(el('div', { class: 'ep-top' }, sel), ...s.eps.map((ep, i) => {
+        const lk = HTTP_RE.test(ep.link || '') ? ep.link : link, dlk = HTTP_RE.test(ep.dl || '') ? ep.dl : null;
+        const th = el(lk ? 'a' : 'div', Object.assign({ class: 'ep-th' }, lk ? { href: lk, target: '_blank', rel: 'noopener noreferrer', 'aria-label': ep.t } : {}),
+          thumb ? el('img', { src: thumb, alt: '', loading: 'lazy' }) : null, el('span', { class: 'ep-play', html: IM_PLAY }), dub ? el('span', { class: 'bdg', html: IM_MIC }) : null);
+        return el('div', { class: 'ep' }, th, el('div', { class: 'ep-i' }, el('div', { class: 'ep-t' }, ep.t || (tr('قسمت') + ' ' + (i + 1))), ep.d ? el('div', { class: 'ep-d' }, ep.d) : null),
+          dlk ? el('a', { class: 'ep-dl', href: dlk, target: '_blank', rel: 'noopener noreferrer', 'aria-label': tr('دانلود'), html: IM_DL }) : null);
+      }));
+    };
+    const tabDefs = (isSer ? [['ep', 'قسمت‌ها']] : []).concat([['cm', 'دیدگاه‌ها'], ['rel', it.cat === 'series' ? 'سریال‌های مرتبط' : 'فیلم‌های مرتبط'], ['ds', 'توضیحات']]);
     const tabBtns = tabDefs.map((d) => el('button', { type: 'button', class: 'mv-tab', role: 'tab', onclick: () => showTab(d[0]) }, tr(d[1])));
     const tabsEl = el('div', { class: 'mv-tabs', role: 'tablist' }, tabBtns);
     const showTab = (k) => {
       tabBtns.forEach((b, i) => b.setAttribute('aria-selected', String(tabDefs[i][0] === k)));
-      if (k === 'cm') drawCm();
+      if (k === 'ep') drawEp();
+      else if (k === 'cm') drawCm();
       else if (k === 'rel') panel.replaceChildren(rel.length ? shelfEl({ kind: 'row', title: tr('فیلم‌های مشابه') }, rel.slice(0, 14), false) : el('p', { class: 'empty' }, tr('موردی نیست.')));
       else panel.replaceChildren(el('p', { class: 'mv-full' }, it.desc || tr('توضیحاتی اضافه نشده.')));
     };
@@ -2268,7 +2301,8 @@
         el('div', { class: 'mv-chips' },
           it.imdb ? el('span', { class: 'mv-chip' }, imdbEl(it.imdb)) : null,
           it.year ? el('span', { class: 'mv-chip' }, el('span', { html: IM_CAL }), it.year) : null,
-          it.duration ? el('span', { class: 'mv-chip', dir: 'ltr' }, el('span', { html: IM_CLK }), it.duration) : null),
+          it.duration ? el('span', { class: 'mv-chip', dir: 'ltr' }, el('span', { html: IM_CLK }), it.duration) : null,
+          it.seasons && it.seasons.length ? el('span', { class: 'mv-chip' }, it.seasons.length + ' ' + tr('فصل')) : null),
         it.lang || it.genre ? el('div', { class: 'mv-line' }, el('span', { class: 'mv-ic', html: IM_MIC }), [it.lang, it.genre ? tr(it.genre) : ''].filter(Boolean).join(' ، ')) : null,
         ageTxt || it.country ? el('div', { class: 'mv-line' }, it.age && it.age !== 'همه سنین' ? el('span', { class: 'mv-age', dir: 'ltr' }, it.age) : null,
           ageTxt ? el('span', {}, ageTxt) : null, ageTxt && it.country ? el('span', { class: 'mv-sep' }) : null,
@@ -2281,7 +2315,7 @@
         state.user ? null : el('a', { class: 'mv-login', href: 'account.html' }, el('span', { style: 'flex:1' }, tr('با ورود به حساب، لیست تماشا و علاقه‌مندی‌هات ذخیره می‌شه!')), el('b', {}, tr('ورود'))),
         el('div', { class: 'mv-acts' }, likeBtn, disBtn, saveBtn, shareBtn),
         tabsEl, panel)].filter(Boolean));
-    showTab('cm');
+    showTab(isSer ? 'ep' : 'cm');
   }
 
   // ---------- مسیریابی ساده با hash ----------
@@ -2350,7 +2384,7 @@
   // ---------- فرم افزودن و ویرایش ----------
   function openItemForm(item, defaults) {
     if (!isAdmin()) return;
-    const d = Object.assign({ cat: 'movies', title: '', desc: '', year: '', cover: '', link: '', file: null, fresh: false, genre: '', imdb: '', country: '', banner: '', titleEn: '', duration: '', age: '', lang: '' }, item || {}, item ? {} : (defaults || {}));
+    const d = Object.assign({ cat: 'movies', title: '', desc: '', year: '', cover: '', link: '', file: null, fresh: false, genre: '', imdb: '', country: '', banner: '', titleEn: '', duration: '', age: '', lang: '', seasons: [] }, item || {}, item ? {} : (defaults || {}));
     let cover = d.cover, fileMeta = d.file, banner = d.banner;
     const fld = (label, id, ctrl, extra) => el('div', { class: 'fld' }, el('label', { for: id }, label), ctrl, extra);
     const fTitle = el('input', { id: 'f-title', type: 'text', maxlength: 120, value: d.title });
@@ -2412,7 +2446,24 @@
       el('div', { class: 'row2' }, fld(tr('کشور سازنده'), 'f-country', fCountry), fld(tr('امتیاز IMDb'), 'f-imdb', fImdb, eImdb)),
       el('div', { class: 'fld' }, el('label', {}, tr('پوستر بنری')), bannerBox, bannerIn,
         el('small', {}, tr('عکس عمودی (بلند) برای پوستر بزرگ بالای صفحه فیلم‌ها. اگه خالی باشه تو پوستر بالا نمایش داده نمی‌شه.'))));
-    const syncMovie = () => { movieOnly.style.display = RICH(fCat.value) ? '' : 'none'; };
+    let seasons = JSON.parse(JSON.stringify(d.seasons || []));
+    const serOnly = el('div', { class: 'fld' });
+    const drawSeasons = () => {
+      const inp = (v, ph, fn, cls) => el('input', { type: 'text', value: v || '', placeholder: ph, class: cls || '', maxlength: 400, oninput: (e) => fn(e.target.value) });
+      const blank = () => ({ t: '', d: '', link: '', dl: '' });
+      serOnly.replaceChildren(el('label', {}, tr('فصل‌ها و قسمت‌ها')),
+        ...seasons.map((s, si) => el('div', { class: 'ser-s' },
+          el('div', { class: 'ser-h' }, el('b', {}, tr('فصل') + ' ' + (si + 1)), el('button', { type: 'button', class: 'btn ghost', onclick: () => { seasons.splice(si, 1); drawSeasons(); } }, tr('حذف فصل'))),
+          ...s.eps.map((ep, ei) => el('div', { class: 'ser-e' },
+            inp(ep.t, tr('عنوان قسمت'), (v) => { ep.t = v; }),
+            el('div', { class: 'row2' }, inp(ep.d, '45:00', (v) => { ep.d = v; }, 'ltr'), el('button', { type: 'button', class: 'btn ghost', onclick: () => { s.eps.splice(ei, 1); drawSeasons(); } }, tr('حذف'))),
+            inp(ep.link, tr('لینک تماشا (اختیاری)'), (v) => { ep.link = v; }, 'ltr'),
+            inp(ep.dl, tr('لینک دانلود (اختیاری)'), (v) => { ep.dl = v; }, 'ltr'))),
+          el('button', { type: 'button', class: 'btn ghost', onclick: () => { s.eps.push(blank()); drawSeasons(); } }, tr('افزودن قسمت')))),
+        el('button', { type: 'button', class: 'btn ghost', onclick: () => { seasons.push({ eps: [blank()] }); drawSeasons(); } }, tr('افزودن فصل')));
+    };
+    drawSeasons();
+    const syncMovie = () => { movieOnly.style.display = RICH(fCat.value) ? '' : 'none'; serOnly.style.display = fCat.value === 'series' ? '' : 'none'; };
     fCat.addEventListener('change', syncMovie); syncMovie();
 
     // فایل اصلی
@@ -2448,7 +2499,7 @@
       try {
         await Api.items.save({ id: item && item.id, cat: fCat.value, title, desc: fDesc.value.trim(), year, cover, link, file: fileMeta, fresh: fFresh.checked,
           genre: isMv ? fGenre.value : '', imdb: isMv ? imdb : '', country: isMv ? fCountry.value.trim() : '', banner: isMv ? banner : '',
-          titleEn: isMv ? fTitleEn.value.trim() : '', duration: isMv ? dur : '', age: isMv ? fAge.value : '', lang: isMv ? fLang.value.trim() : '' });
+          titleEn: isMv ? fTitleEn.value.trim() : '', duration: isMv ? dur : '', age: isMv ? fAge.value : '', lang: isMv ? fLang.value.trim() : '', seasons: fCat.value === 'series' ? seasons : [] });
         closeModal(); await refresh(); toast(tr('ذخیره شد.'));
       } catch (e) { toast(errMsg(e)); saveBtn.disabled = false; }
     });
@@ -2461,6 +2512,7 @@
         fld(tr('توضیحات'), 'f-desc', fDesc),
         el('div', { class: 'fld' }, el('label', {}, tr('کاور')), coverBox, imgIn),
         movieOnly,
+        serOnly,
         fld(tr('لینک مشاهده یا دانلود (اختیاری)'), 'f-link', fLink, eLink),
         el('div', { class: 'fld' }, el('label', {}, tr('فایل اصلی (بازی، فیلم و...)')), fileBox, fileIn),
         el('label', { class: 'chk', for: 'f-fresh' }, fFresh, tr('نمایش در تازه‌ها'))),
