@@ -901,6 +901,24 @@
   .mv-tabs { display: flex; margin: 22px -20px 16px; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.15); overflow-x: auto; scrollbar-width: none; }
   .mv-tab { flex: none; padding: 12px 16px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
   .mv-tab[aria-selected="true"] { color: #fff; border-bottom-color: #e8144f; }
+  .sg { background: linear-gradient(135deg, #5b2bd6, #b0246f); }
+  .sg-t { position: absolute; inset: auto 16px 14px; font-size: 22px; font-weight: 900; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  /* موزیک */
+  .mu-h { margin: 28px 0 6px; }
+  .mu-h h3 { margin: 0; font-size: 22px; font-weight: 900; color: #fff; display: inline; }
+  .mu-h small { margin-inline-start: 8px; color: var(--muted); font-size: 14px; }
+  .mu-rh { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 10px; }
+  .mu-chip { padding: 8px 16px; border-radius: 12px; background: rgba(255,255,255,.1); color: #fff; font-weight: 700; }
+  .mu-all { display: flex; align-items: center; gap: 4px; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+  .rail.mu-wrap { flex-wrap: wrap; overflow: visible; }
+  .mu-c { flex: none; width: 150px; cursor: pointer; outline-offset: 3px; }
+  .mu-c.round { width: 128px; text-align: center; }
+  .mu-art { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden; display: grid; place-items: center; color: #fff; }
+  .mu-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .mu-art > svg { width: 40%; height: 40%; stroke: currentColor; opacity: .9; }
+  .mu-art.round { border-radius: 50%; border: 3px solid rgba(255,255,255,.2); }
+  .mu-t { margin-top: 8px; font-weight: 800; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mu-a { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mv-full { margin: 0; line-height: 2.05; color: #e8e0fa; font-size: 15px; white-space: pre-wrap; }
   .ep-top { margin-bottom: 8px; }
   .ep-sel { height: 42px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-weight: 700; }
@@ -1778,6 +1796,7 @@
   };
   const GENRES = ['اکشن', 'درام', 'کمدی', 'ترسناک', 'علمی و تخیلی', 'مستند', 'عاشقانه', 'خانواده', 'ماجراجویی', 'جنایی'];
   const RICH = (c) => c === 'movies' || c === 'animations' || c === 'series';
+  const DARKC = (c) => RICH(c) || c === 'music';
   const state = { user: null, site: null, items: [], shelves: [], editing: false };
   const isAdmin = () => !!(state.user && state.user.role === 'admin');
   const SVG = (inner, w) => '<svg viewBox="0 0 24 24" fill="none" stroke-width="' + (w || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
@@ -2023,7 +2042,7 @@
         el('button', { type: 'button', 'aria-label': tr('ویرایش'), html: I_PEN, onclick: () => openShelfForm(sh) }),
         el('button', { type: 'button', class: 'del', 'aria-label': tr('حذف'), html: I_TRASH, onclick: () => deleteShelf(sh) })));
       const card = it ? el('button', { type: 'button', class: 'sg', 'aria-label': it.title, onclick: () => showDetail(it) },
-        src ? el('img', { src, alt: '', loading: 'lazy' }) : null, /دوبله/.test(it.lang || '') ? el('span', { class: 'bdg', html: IM_MIC }) : null)
+        src ? el('img', { src, alt: '', loading: 'lazy' }) : el('span', { class: 'sg-t' }, it.title), /دوبله/.test(it.lang || '') ? el('span', { class: 'bdg', html: IM_MIC }) : null)
         : el('p', { class: 'empty' }, tr('هنوز فیلمی انتخاب نشده.'));
       return el('section', { class: 'shelf', style: 'padding:0' }, sHead, card);
     }
@@ -2033,7 +2052,7 @@
     if (canEdit) head.append(el('div', { class: 'sh-tools' },
       el('button', { type: 'button', 'aria-label': tr('ویرایش'), html: I_PEN, onclick: () => openShelfForm(sh) }),
       el('button', { type: 'button', class: 'del', 'aria-label': tr('حذف'), html: I_TRASH, onclick: () => deleteShelf(sh) })));
-    const rail = list.length ? el('div', { class: 'rail' }, list.map((it, i) => miniEl(it, isColl ? i + 1 : 0))) : el('p', { class: 'empty' }, tr('هنوز فیلمی انتخاب نشده.'));
+    const rail = list.length ? el('div', { class: 'rail' }, list.map((it, i) => curCat === 'music' ? musicEl(it) : miniEl(it, isColl ? i + 1 : 0))) : el('p', { class: 'empty' }, tr('هنوز فیلمی انتخاب نشده.'));
     let body = rail;
     if (isColl) {
       body = el('div', { class: 'coll-box' }, rail);
@@ -2042,9 +2061,54 @@
     return el('section', { class: 'shelf', style: 'padding:0' }, head, body);
   }
 
+  function musicEl(it, round) {
+    const hue = Array.from(String(it.id || '')).reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360;
+    const art = el('div', { class: 'mu-art' + (round ? ' round' : ''), style: 'background:linear-gradient(145deg,hsl(' + hue + ',70%,46%),hsl(' + ((hue + 50) % 360) + ',70%,24%))' });
+    if (it.cover) art.append(el('img', { src: it.cover, alt: '', loading: 'lazy' })); else art.innerHTML = catIcon('music');
+    if (isAdmin()) art.append(el('div', { class: 'ed-tools' },
+      el('button', { type: 'button', 'aria-label': tr('ویرایش'), html: I_PEN, onclick: (e) => { e.stopPropagation(); openItemForm(it); } }),
+      el('button', { type: 'button', class: 'del', 'aria-label': tr('حذف'), html: I_TRASH, onclick: (e) => { e.stopPropagation(); deleteItem(it); } })));
+    const open = () => showDetail(it.artist ? Object.assign({}, it, { title: it.title + ' — ' + it.artist }) : it);
+    const card = el('article', { class: 'mu-c' + (round ? ' round' : ''), tabindex: 0, role: 'button', 'aria-label': it.title, onclick: open,
+      onkeydown: (e) => { if (e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } } },
+      art, el('div', { class: 'mu-t' }, round ? (it.artist || it.title) : it.title), round ? null : el('div', { class: 'mu-a' }, it.artist || ''));
+    return card;
+  }
+
+  function renderMusic() {
+    const c = CATS.music, all = state.items.filter((i) => i.cat === 'music');
+    const pb = (t, f) => el('button', { type: 'button', class: 'ed-btn', onclick: f }, el('span', { html: I_PLUS }), tr(t));
+    const parts = [
+      el('div', { class: 'cv-top' }, el('a', { class: 'cv-back', href: '#', 'aria-label': tr('بازگشت'), html: I_BACK }), el('div', { class: 'cv-ic ' + c.cls, html: catIcon('music') }),
+        el('div', { class: 'cv-t' }, el('h2', {}, tr(c.fa)), el('small', {}, tr(c.sub))), pb('افزودن', () => openItemForm(null, { cat: 'music' }))),
+      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')))];
+    const head = (t, s) => el('div', { class: 'mu-h' }, el('h3', {}, tr(t)), s ? el('small', {}, tr(s)) : null);
+    const REG = [['iran', 'ایران', '🇮🇷'], ['world', 'جهان', '🌍'], ['', 'سایر', '🎵']];
+    const rows = (pick, mk) => REG.forEach((r) => {
+      const l = pick(r[0]); if (!l.length) return;
+      const rail = el('div', { class: 'rail mu-rail' }, l.map(mk));
+      parts.push(el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, r[2] + ' ' + tr(r[1])),
+        el('button', { type: 'button', class: 'mu-all', onclick: () => rail.classList.toggle('mu-wrap') }, tr('دیدن همه'), el('span', { html: I_CHEV }))), rail);
+    });
+    const inReg = (i, k) => (i.region || '') === k;
+    if (all.length) { parts.push(head('جدیدترین‌ها', '(ویژه)')); rows((k) => all.filter((i) => inReg(i, k)), (i) => musicEl(i)); }
+    if (all.some((i) => i.hot)) { parts.push(head('محبوب‌ترین‌ها')); rows((k) => all.filter((i) => i.hot && inReg(i, k)), (i) => musicEl(i)); }
+    state.shelves.filter((s) => s.cat === 'music').forEach((sh) => {
+      const l = (sh.ids || []).map((id) => all.find((i) => i.id === id)).filter(Boolean);
+      if (l.length || isAdmin()) parts.push(shelfEl(sh, l, true));
+    });
+    const seen = new Set(), sing = [];
+    all.forEach((i) => { const a = (i.artist || '').trim(); if (a && !seen.has(a)) { seen.add(a); sing.push(i); } });
+    if (sing.length) { parts.push(head('خوانندگان', '(محبوب‌ترین‌ها)')); rows((k) => sing.filter((i) => inReg(i, k)), (i) => musicEl(i, true)); }
+    if (!all.length) parts.push(el('p', { class: 'empty' }, tr('هنوز آهنگی اضافه نشده.')));
+    document.getElementById('catRoot').replaceChildren(...parts);
+    document.title = tr(c.fa) + ' | ' + tr('دنیای من');
+  }
+
   function renderCat() {
     if (!curCat) return;
     stopBanner();
+    if (curCat === 'music') { renderMusic(); return; }
     const c = CATS[curCat], isMovies = RICH(curCat);
     const all = state.items.filter((i) => i.cat === curCat);
     const banners = isMovies ? all.filter((i) => i.banner) : [];
@@ -2351,8 +2415,8 @@
       const target = id && !id.startsWith('/') ? document.getElementById(id) : null;
       if (target) target.scrollIntoView(); else if (wasCat) window.scrollTo(0, 0);
     }
-    cv.classList.toggle('cv-dark', RICH(curCat));
-    document.body.classList.toggle('pg-dark', RICH(curCat) || !!curMovie);
+    cv.classList.toggle('cv-dark', DARKC(curCat));
+    document.body.classList.toggle('pg-dark', DARKC(curCat) || !!curMovie);
   }
   window.addEventListener('hashchange', () => { forceHash = null; route(); });
 
@@ -2384,7 +2448,7 @@
   // ---------- فرم افزودن و ویرایش ----------
   function openItemForm(item, defaults) {
     if (!isAdmin()) return;
-    const d = Object.assign({ cat: 'movies', title: '', desc: '', year: '', cover: '', link: '', file: null, fresh: false, genre: '', imdb: '', country: '', banner: '', titleEn: '', duration: '', age: '', lang: '', seasons: [] }, item || {}, item ? {} : (defaults || {}));
+    const d = Object.assign({ cat: 'movies', title: '', desc: '', year: '', cover: '', link: '', file: null, fresh: false, genre: '', imdb: '', country: '', banner: '', titleEn: '', duration: '', age: '', lang: '', seasons: [], artist: '', region: '', hot: false }, item || {}, item ? {} : (defaults || {}));
     let cover = d.cover, fileMeta = d.file, banner = d.banner;
     const fld = (label, id, ctrl, extra) => el('div', { class: 'fld' }, el('label', { for: id }, label), ctrl, extra);
     const fTitle = el('input', { id: 'f-title', type: 'text', maxlength: 120, value: d.title });
@@ -2446,6 +2510,11 @@
       el('div', { class: 'row2' }, fld(tr('کشور سازنده'), 'f-country', fCountry), fld(tr('امتیاز IMDb'), 'f-imdb', fImdb, eImdb)),
       el('div', { class: 'fld' }, el('label', {}, tr('پوستر بنری')), bannerBox, bannerIn,
         el('small', {}, tr('عکس عمودی (بلند) برای پوستر بزرگ بالای صفحه فیلم‌ها. اگه خالی باشه تو پوستر بالا نمایش داده نمی‌شه.'))));
+    const fArtist = el('input', { id: 'f-artist', type: 'text', maxlength: 80, value: d.artist || '' });
+    const fRegion = el('select', { id: 'f-region' }, [['', 'نامشخص'], ['iran', 'ایران'], ['world', 'جهان']].map((o) => el('option', { value: o[0], selected: o[0] === (d.region || '') }, tr(o[1]))));
+    const fHot = el('input', { id: 'f-hot', type: 'checkbox', checked: !!d.hot });
+    const musicOnly = el('div', { class: 'm-body', style: 'padding:0' }, fld(tr('خواننده'), 'f-artist', fArtist), fld(tr('منطقه'), 'f-region', fRegion),
+      el('label', { for: 'f-hot' }, fHot, ' ', tr('محبوب (نمایش در «محبوب‌ترین‌ها»)')));
     let seasons = JSON.parse(JSON.stringify(d.seasons || []));
     const serOnly = el('div', { class: 'fld' });
     const drawSeasons = () => {
@@ -2463,7 +2532,7 @@
         el('button', { type: 'button', class: 'btn ghost', onclick: () => { seasons.push({ eps: [blank()] }); drawSeasons(); } }, tr('افزودن فصل')));
     };
     drawSeasons();
-    const syncMovie = () => { movieOnly.style.display = RICH(fCat.value) ? '' : 'none'; serOnly.style.display = fCat.value === 'series' ? '' : 'none'; };
+    const syncMovie = () => { movieOnly.style.display = RICH(fCat.value) ? '' : 'none'; serOnly.style.display = fCat.value === 'series' ? '' : 'none'; musicOnly.style.display = fCat.value === 'music' ? '' : 'none'; };
     fCat.addEventListener('change', syncMovie); syncMovie();
 
     // فایل اصلی
@@ -2499,7 +2568,8 @@
       try {
         await Api.items.save({ id: item && item.id, cat: fCat.value, title, desc: fDesc.value.trim(), year, cover, link, file: fileMeta, fresh: fFresh.checked,
           genre: isMv ? fGenre.value : '', imdb: isMv ? imdb : '', country: isMv ? fCountry.value.trim() : '', banner: isMv ? banner : '',
-          titleEn: isMv ? fTitleEn.value.trim() : '', duration: isMv ? dur : '', age: isMv ? fAge.value : '', lang: isMv ? fLang.value.trim() : '', seasons: fCat.value === 'series' ? seasons : [] });
+          titleEn: isMv ? fTitleEn.value.trim() : '', duration: isMv ? dur : '', age: isMv ? fAge.value : '', lang: isMv ? fLang.value.trim() : '', seasons: fCat.value === 'series' ? seasons : [],
+          artist: fCat.value === 'music' ? fArtist.value.trim() : '', region: fCat.value === 'music' ? fRegion.value : '', hot: fCat.value === 'music' && fHot.checked });
         closeModal(); await refresh(); toast(tr('ذخیره شد.'));
       } catch (e) { toast(errMsg(e)); saveBtn.disabled = false; }
     });
@@ -2513,6 +2583,7 @@
         el('div', { class: 'fld' }, el('label', {}, tr('کاور')), coverBox, imgIn),
         movieOnly,
         serOnly,
+        musicOnly,
         fld(tr('لینک مشاهده یا دانلود (اختیاری)'), 'f-link', fLink, eLink),
         el('div', { class: 'fld' }, el('label', {}, tr('فایل اصلی (بازی، فیلم و...)')), fileBox, fileIn),
         el('label', { class: 'chk', for: 'f-fresh' }, fFresh, tr('نمایش در تازه‌ها'))),

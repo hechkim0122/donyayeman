@@ -202,6 +202,22 @@
         write('shelves', shl);
         write('seeded-demo-v1', true);
       }
+      if (!read('seeded-music-v1', false)) {
+        all = (all || read('items', [])).filter(function (x) { return String(x.id).indexOf('demo-music-') !== 0; });
+        var mu = [['شب بی‌ستاره', 'آرمان رها', 'iran', 1], ['یادت رفته', 'نیلوفر شمس', 'iran', 0], ['دوتایی', 'سینا آریا', 'iran', 1], ['رقص باران', 'آرمان رها', 'iran', 0],
+                  ["Don't Look Back", 'Luna Ray', 'world', 1], ['Gel Gel', 'Mert Aksoy', 'world', 0], ['Blue Hour', 'Luna Ray', 'world', 1], ['Sunset Drive', 'Kai Morgan', 'world', 0]];
+        var mids = mu.map(function (m, i) {
+          var id = 'demo-mu-' + i;
+          all.push({ id: id, cat: 'music', title: m[0], artist: m[1], region: m[2], hot: !!m[3], desc: 'این یک آهنگ نمونه است. از پنل مدیر می‌تونی ویرایشش کنی یا حذفش کنی.',
+                     year: '2025', cover: '', link: 'https://example.com/listen', file: null, fresh: false, createdAt: 800 - i, updatedAt: 800 - i });
+          return id;
+        });
+        var shl2 = read('shelves', []);
+        shl2.push({ id: 'demo-shelf-music-single', cat: 'music', kind: 'single', title: 'ترندهای شبکه‌های اجتماعی', genre: '', ids: [mids[0]], bg: '', createdAt: 3200, updatedAt: t },
+                  { id: 'demo-shelf-music-row', cat: 'music', kind: 'row', title: 'پلی‌لیست رقص و پارتی', genre: '', ids: mids.slice(2, 7), bg: '', createdAt: 3201, updatedAt: t });
+        write('shelves', shl2);
+        write('seeded-music-v1', true);
+      }
       if (all) write('items', all);
     }
     var CATS = ['movies', 'series', 'animations', 'anime', 'games', 'music', 'apps'];
@@ -245,7 +261,8 @@
       return { cat: it.cat, title: title, desc: String(it.desc || '').trim().slice(0, 2000), year: year,
                cover: cover, link: link, file: file, fresh: !!it.fresh,
                genre: genre, imdb: imdb, country: country, banner: banner,
-               titleEn: titleEn, duration: duration, age: age, lang: lang, seasons: seasons };
+               titleEn: titleEn, duration: duration, age: age, lang: lang, seasons: seasons,
+               artist: String(it.artist || '').trim().slice(0, 80), region: it.region === 'iran' || it.region === 'world' ? it.region : '', hot: !!it.hot };
     }
     var items = {
       async list(q) {
