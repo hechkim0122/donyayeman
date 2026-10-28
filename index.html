@@ -919,6 +919,14 @@
   .mu-art.round { border-radius: 50%; border: 3px solid rgba(255,255,255,.2); }
   .mu-t { margin-top: 8px; font-weight: 800; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mu-a { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .imp-bar { display: flex; gap: 8px; }
+  .imp-bar input { flex: 1; min-width: 0; }
+  .imp-list { display: grid; gap: 8px; margin-top: 10px; max-height: 46vh; overflow: auto; }
+  .imp-r { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+  .imp-r img { flex: none; width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
+  .imp-r span { display: grid; min-width: 0; }
+  .imp-r b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .imp-r small { color: var(--muted); }
   .mv-full { margin: 0; line-height: 2.05; color: #e8e0fa; font-size: 15px; white-space: pre-wrap; }
   .ep-top { margin-bottom: 8px; }
   .ep-sel { height: 42px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-weight: 700; }
@@ -2061,6 +2069,58 @@
     return el('section', { class: 'shelf', style: 'padding:0' }, head, body);
   }
 
+  // وارد کردن از iTunes Search (موزیک و برنامه‌های iOS). این سرویس CORS نداره، برای همین از JSONP استفاده می‌شه
+  const jsonp = (url) => new Promise((res, rej) => {
+    const cb = 'dmj' + Date.now() + Math.floor(Math.random() * 1e4), s = document.createElement('script');
+    const done = () => { delete window[cb]; s.remove(); clearTimeout(t); };
+    const t = setTimeout(() => { done(); rej(new Error('timeout')); }, 10000);
+    window[cb] = (d) => { done(); res(d); };
+    s.onerror = () => { done(); rej(new Error('net')); };
+    s.src = url + '&callback=' + cb;
+    document.head.append(s);
+  });
+  function openImport(cat) {
+    if (!isAdmin()) return;
+    const isMu = cat === 'music';
+    const q = el('input', { type: 'text', maxlength: 80, placeholder: tr(isMu ? 'اسم آهنگ یا خواننده...' : 'اسم برنامه...'),
+      onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } } });
+    const reg = el('select', {}, [['iran', 'ایران'], ['world', 'جهان']].map((o) => el('option', { value: o[0] }, tr(o[1]))));
+    const out = el('div', { class: 'imp-list' }), msg = el('p', { class: 'cm-t' });
+    let res = []; const sel = new Set();
+    const art = (u) => String(u || '').replace(/\d+x\d+bb/, '600x600bb');
+    const norm = (r) => r.trackName ? { title: String(r.trackName), sub: String(r.artistName || r.sellerName || ''), artist: String(r.artistName || ''), cover: art(r.artworkUrl512 || r.artworkUrl100),
+      link: String(r.trackViewUrl || ''), year: String(r.releaseDate || '').slice(0, 4), desc: isMu ? String(r.collectionName || '') : String(r.description || '').slice(0, 400) } : null;
+    const draw = () => out.replaceChildren(...res.map((r, i) => el('label', { class: 'imp-r' },
+      el('input', { type: 'checkbox', onchange: (e) => { if (e.target.checked) sel.add(i); else sel.delete(i); } }),
+      IMG_SRC_RE.test(r.cover) ? el('img', { src: r.cover, alt: '', loading: 'lazy' }) : null, el('span', {}, el('b', {}, r.title), el('small', {}, r.sub)))));
+    async function search() {
+      const t = q.value.trim(); if (!t) return;
+      msg.textContent = tr('در حال جستجو...'); sel.clear();
+      try {
+        const d = await jsonp('https://itunes.apple.com/search?limit=25&term=' + encodeURIComponent(t) + (isMu ? '&media=music&entity=song' : '&entity=software'));
+        res = (d.results || []).map(norm).filter(Boolean);
+        msg.textContent = res.length ? '' : tr('نتیجه‌ای پیدا نشد.'); draw();
+      } catch (e) { msg.textContent = tr('اتصال به سرویس جستجو برقرار نشد.'); }
+    }
+    const add = el('button', { type: 'button', class: 'btn primary', onclick: async () => {
+      if (!sel.size) { toast(tr('حداقل یک مورد رو انتخاب کن.')); return; }
+      let ok = 0;
+      for (const i of sel) {
+        const r = res[i];
+        try {
+          await Api.items.save({ cat, title: r.title.slice(0, 120), artist: isMu ? r.artist.slice(0, 80) : '', region: isMu ? reg.value : '', hot: false, desc: r.desc, year: r.year,
+            cover: IMG_SRC_RE.test(r.cover) ? r.cover : '', link: HTTP_RE.test(r.link) ? r.link : '', fresh: false });
+          ok++;
+        } catch (e) { /* ردش کن */ }
+      }
+      await refresh(); closeModal(); toast(ok + ' ' + tr('مورد اضافه شد.'));
+    } }, tr('افزودن انتخاب‌شده‌ها'));
+    openModal({ title: tr('وارد کردن از اینترنت'), actions: [add],
+      content: el('div', {}, el('div', { class: 'imp-bar' }, q, el('button', { type: 'button', class: 'btn ghost', onclick: search }, tr('جستجو'))),
+        isMu ? el('div', { class: 'fld', style: 'margin-top:10px' }, el('label', {}, tr('منطقه‌ی مورد انتخاب‌شده‌ها')), reg) : null,
+        msg, out, el('small', { class: 'cm-t' }, tr('اطلاعات از iTunes Search.'))) });
+  }
+
   function musicEl(it, round) {
     const hue = Array.from(String(it.id || '')).reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360;
     const art = el('div', { class: 'mu-art' + (round ? ' round' : ''), style: 'background:linear-gradient(145deg,hsl(' + hue + ',70%,46%),hsl(' + ((hue + 50) % 360) + ',70%,24%))' });
@@ -2081,7 +2141,7 @@
     const parts = [
       el('div', { class: 'cv-top' }, el('a', { class: 'cv-back', href: '#', 'aria-label': tr('بازگشت'), html: I_BACK }), el('div', { class: 'cv-ic ' + c.cls, html: catIcon('music') }),
         el('div', { class: 'cv-t' }, el('h2', {}, tr(c.fa)), el('small', {}, tr(c.sub))), pb('افزودن', () => openItemForm(null, { cat: 'music' }))),
-      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')))];
+      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')), pb('وارد کردن از اینترنت', () => openImport('music')))];
     const head = (t, s) => el('div', { class: 'mu-h' }, el('h3', {}, tr(t)), s ? el('small', {}, tr(s)) : null);
     const REG = [['iran', 'ایران', '🇮🇷'], ['world', 'جهان', '🌍'], ['', 'سایر', '🎵']];
     const rows = (pick, mk) => REG.forEach((r) => {
@@ -2117,6 +2177,7 @@
       el('a', { class: 'cv-back', href: '#', 'aria-label': tr('بازگشت'), html: I_BACK }),
       el('div', { class: 'cv-ic ' + c.cls, html: catIcon(curCat) }),
       el('div', { class: 'cv-t' }, el('h2', {}, tr(c.fa)), el('small', {}, tr(c.sub))),
+      curCat === 'apps' ? el('button', { type: 'button', class: 'ed-btn', onclick: () => openImport('apps') }, el('span', { html: I_PLUS }), tr('وارد کردن از اینترنت')) : null,
       el('button', { type: 'button', class: 'ed-btn', onclick: () => openItemForm(null, { cat: curCat }) }, el('span', { html: I_PLUS }), tr('افزودن')));
 
     const host = el('div');
