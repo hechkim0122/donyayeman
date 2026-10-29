@@ -2121,6 +2121,78 @@
         msg, out, el('small', { class: 'cm-t' }, tr('اطلاعات از iTunes Search.'))) });
   }
 
+  // افزودن دسته‌ای از iTunes Search؛ این سرویس حدود ۲۰ درخواست در دقیقه قبول می‌کنه، برای همین بین خط‌ها مکث هست
+  const MU_W = ['Billie Eilish', 'The Weeknd', 'Dua Lipa', 'Coldplay', 'Ed Sheeran', 'Taylor Swift', 'Ariana Grande', 'Imagine Dragons', 'Bruno Mars', 'Adele', 'Maroon 5', 'Shakira', 'Eminem', 'Rihanna', 'Justin Bieber', 'Harry Styles'];
+  const MU_I = ['Mohsen Yeganeh', 'Shadmehr Aghili', 'Sirvan Khosravi', 'Ebi', 'Googoosh', 'Mohsen Chavoshi', 'Homayoun Shajarian', 'Ehsan Khajehamiri', 'Moein', 'Hamed Homayoun', 'Reza Sadeghi', 'Salar Aghili'];
+  async function bulkImport(lines, region, per, onLine) {
+    const art = (u) => String(u || '').replace(/\d+x\d+bb/, '600x600bb');
+    const have = new Set(state.items.filter((i) => i.cat === 'music').map((i) => (i.title + '|' + (i.artist || '')).toLowerCase()));
+    let added = 0;
+    for (let n = 0; n < lines.length; n++) {
+      if (onLine) onLine(n, lines.length, lines[n]);
+      try {
+        const d = await jsonp('https://itunes.apple.com/search?media=music&entity=song&limit=40&term=' + encodeURIComponent(lines[n]));
+        let rs = (d.results || []).filter((r) => r.trackName);
+        const m = rs.filter((r) => String(r.artistName || '').toLowerCase().includes(lines[n].toLowerCase()));
+        rs = (m.length ? m : rs).slice(0, per);
+        for (let k = 0; k < rs.length; k++) {
+          const r = rs[k], key = (String(r.trackName) + '|' + String(r.artistName || '')).toLowerCase();
+          if (have.has(key)) continue;
+          have.add(key);
+          const cover = art(r.artworkUrl100), link = String(r.trackViewUrl || '');
+          try {
+            await Api.items.save({ cat: 'music', title: String(r.trackName).slice(0, 120), artist: String(r.artistName || '').slice(0, 80), region, hot: k === 0,
+              desc: String(r.collectionName || ''), year: String(r.releaseDate || '').slice(0, 4), cover: IMG_SRC_RE.test(cover) ? cover : '', link: HTTP_RE.test(link) ? link : '', fresh: false });
+            added++;
+          } catch (e) { /* ردش کن */ }
+        }
+      } catch (e) { /* این خط خطا داد، می‌ره سراغ بعدی */ }
+      if (n < lines.length - 1) await new Promise((r) => setTimeout(r, 3200));
+    }
+    return added;
+  }
+  function openBulk() {
+    if (!isAdmin()) return;
+    const ta = el('textarea', { rows: 8, style: 'width:100%', placeholder: tr('هر خط یه اسم خواننده (یا آهنگ)، ترجیحاً انگلیسی') });
+    const reg = el('select', {}, [['iran', 'ایران'], ['world', 'جهان']].map((o) => el('option', { value: o[0] }, tr(o[1]))));
+    const per = el('select', {}, [5, 8, 12].map((n) => el('option', { value: n, selected: n === 8 }, String(n))));
+    const msg = el('p', { class: 'cm-t' });
+    const preset = (label, list, r) => el('button', { type: 'button', class: 'btn ghost', onclick: () => { ta.value = list.join('\n'); reg.value = r; } }, tr(label));
+    const go = el('button', { type: 'button', class: 'btn primary', onclick: async () => {
+      const lines = ta.value.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 30);
+      if (!lines.length) { toast(tr('حداقل یک خط بنویس.')); return; }
+      go.disabled = true;
+      const added = await bulkImport(lines, reg.value, Number(per.value), (n, t, l) => { msg.textContent = tr('در حال افزودن') + ' ' + (n + 1) + '/' + t + ' — ' + l; });
+      await refresh(); closeModal(); toast(added + ' ' + tr('آهنگ اضافه شد.'));
+    } }, tr('شروع'));
+    openModal({ title: tr('افزودن دسته‌ای آهنگ'), actions: [go],
+      content: el('div', {}, el('div', { class: 'imp-bar', style: 'margin-bottom:8px' }, preset('لیست آماده‌ی جهان', MU_W, 'world'), preset('لیست آماده‌ی ایران', MU_I, 'iran')), ta,
+        el('div', { class: 'fld', style: 'margin-top:10px' }, el('label', {}, tr('منطقه‌ی همه‌ی این خط‌ها')), reg),
+        el('div', { class: 'fld' }, el('label', {}, tr('تعداد آهنگ از هر خط')), per), msg,
+        el('small', { class: 'cm-t' }, tr('بین هر خط چند ثانیه مکث هست و تا ۳۰ خط در هر بار. اطلاعات از iTunes Search.'))) });
+  }
+  // پر شدن خودکار: بار اول که مدیر وارد بخش موزیک می‌شه (فقط یک بار، و فقط اگه هنوز آهنگ واقعی نیست)
+  let autoRunning = false;
+  async function autoFillMusic() {
+    if (autoRunning || !isAdmin()) return;
+    try { if (localStorage.getItem('dm:autofill-music-v1')) return; localStorage.setItem('dm:autofill-music-v1', '1'); } catch (e) { return; }
+    const isDemo = (i) => /^(demo-|seed-)/.test(String(i.id));
+    if (state.items.some((i) => i.cat === 'music' && !isDemo(i))) return;
+    autoRunning = true; toast(tr('موزیک داره خودکار پر می‌شه. چند دقیقه صبر کن و صفحه رو نبند.'));
+    let added = 0;
+    try {
+      const live = async (n) => { if (n > 0) await refresh(); };
+      added += await bulkImport(MU_W, 'world', 8, live);
+      added += await bulkImport(MU_I, 'iran', 8, live);
+      if (added > 0) {
+        for (const i of state.items.filter((x) => x.cat === 'music' && isDemo(x))) { try { await Api.items.remove(i.id); } catch (e) { /* مهم نیست */ } }
+        for (const id of ['demo-shelf-music-single', 'demo-shelf-music-row']) { try { await Api.shelves.remove(id); } catch (e) { /* مهم نیست */ } }
+      }
+    } catch (e) { /* مهم نیست */ }
+    autoRunning = false;
+    await refresh(); toast(added + ' ' + tr('آهنگ اضافه شد.'));
+  }
+
   function musicEl(it, round) {
     const hue = Array.from(String(it.id || '')).reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360;
     const art = el('div', { class: 'mu-art' + (round ? ' round' : ''), style: 'background:linear-gradient(145deg,hsl(' + hue + ',70%,46%),hsl(' + ((hue + 50) % 360) + ',70%,24%))' });
@@ -2141,7 +2213,7 @@
     const parts = [
       el('div', { class: 'cv-top' }, el('a', { class: 'cv-back', href: '#', 'aria-label': tr('بازگشت'), html: I_BACK }), el('div', { class: 'cv-ic ' + c.cls, html: catIcon('music') }),
         el('div', { class: 'cv-t' }, el('h2', {}, tr(c.fa)), el('small', {}, tr(c.sub))), pb('افزودن', () => openItemForm(null, { cat: 'music' }))),
-      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')), pb('وارد کردن از اینترنت', () => openImport('music')))];
+      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')), pb('وارد کردن از اینترنت', () => openImport('music')), pb('افزودن دسته‌ای (اسم خواننده‌ها)', () => openBulk()))];
     const head = (t, s) => el('div', { class: 'mu-h' }, el('h3', {}, tr(t)), s ? el('small', {}, tr(s)) : null);
     const REG = [['iran', 'ایران', '🇮🇷'], ['world', 'جهان', '🌍'], ['', 'سایر', '🎵']];
     const rows = (pick, mk) => REG.forEach((r) => {
@@ -2163,6 +2235,7 @@
     if (!all.length) parts.push(el('p', { class: 'empty' }, tr('هنوز آهنگی اضافه نشده.')));
     document.getElementById('catRoot').replaceChildren(...parts);
     document.title = tr(c.fa) + ' | ' + tr('دنیای من');
+    autoFillMusic();
   }
 
   function renderCat() {
