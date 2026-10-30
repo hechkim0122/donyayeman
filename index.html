@@ -918,6 +918,9 @@
   .mu-art > svg { width: 40%; height: 40%; stroke: currentColor; opacity: .9; }
   .mu-art.round { border-radius: 50%; border: 3px solid rgba(255,255,255,.2); }
   .mu-t { margin-top: 8px; font-weight: 800; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sk { background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.16), rgba(255,255,255,.06)); background-size: 200% 100%; animation: skm 1.3s linear infinite; }
+  .sk-l { height: 12px; width: 70%; margin-top: 10px; border-radius: 6px; background: rgba(255,255,255,.1); }
+  @keyframes skm { to { background-position: -200% 0; } }
   .mu-a { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .imp-bar { display: flex; gap: 8px; }
   .imp-bar input { flex: 1; min-width: 0; }
@@ -1280,6 +1283,7 @@
   <input type="file" id="fileInput" multiple hidden>
 </section>
 
+<script src="music-data.js"></script>
 <script src="api.js"></script>
 <script>
 
@@ -2124,7 +2128,7 @@
   // افزودن دسته‌ای از iTunes Search؛ این سرویس حدود ۲۰ درخواست در دقیقه قبول می‌کنه، برای همین بین خط‌ها مکث هست
   const MU_W = ['Billie Eilish', 'The Weeknd', 'Dua Lipa', 'Coldplay', 'Ed Sheeran', 'Taylor Swift', 'Ariana Grande', 'Imagine Dragons', 'Bruno Mars', 'Adele', 'Maroon 5', 'Shakira', 'Eminem', 'Rihanna', 'Justin Bieber', 'Harry Styles'];
   const MU_I = ['Mohsen Yeganeh', 'Shadmehr Aghili', 'Sirvan Khosravi', 'Ebi', 'Googoosh', 'Mohsen Chavoshi', 'Homayoun Shajarian', 'Ehsan Khajehamiri', 'Moein', 'Hamed Homayoun', 'Reza Sadeghi', 'Salar Aghili'];
-  async function bulkImport(lines, region, per, onLine) {
+  async function bulkImport(lines, region, per, onLine, collect) {
     const art = (u) => String(u || '').replace(/\d+x\d+bb/, '600x600bb');
     const have = new Set(state.items.filter((i) => i.cat === 'music').map((i) => (i.title + '|' + (i.artist || '')).toLowerCase()));
     let added = 0;
@@ -2141,11 +2145,10 @@
           if (have.has(key)) continue;
           have.add(key);
           const cover = art(r.artworkUrl100), link = String(r.trackViewUrl || '');
-          try {
-            await saveOne({ cat: 'music', title: String(r.trackName).slice(0, 120), artist: String(r.artistName || '').slice(0, 80), region, hot: k === 0,
-              desc: String(r.collectionName || ''), year: String(r.releaseDate || '').slice(0, 4), cover: IMG_SRC_RE.test(cover) ? cover : '', link: HTTP_RE.test(link) ? link : '', fresh: false });
-            added++;
-          } catch (e) { /* ردش کن */ }
+          const rec = { cat: 'music', title: String(r.trackName).slice(0, 120), artist: String(r.artistName || '').slice(0, 80), region, hot: k === 0,
+            desc: String(r.collectionName || ''), year: String(r.releaseDate || '').slice(0, 4), cover: IMG_SRC_RE.test(cover) ? cover : '', link: HTTP_RE.test(link) ? link : '', fresh: false };
+          if (collect) { collect.push(rec); added++; continue; }
+          try { await saveOne(rec); added++; } catch (e) { /* ردش کن */ }
         }
       } catch (e) { /* این خط خطا داد، می‌ره سراغ بعدی */ }
       if (n < lines.length - 1) await new Promise((r) => setTimeout(r, 3200));
@@ -2173,9 +2176,27 @@
         el('small', { class: 'cm-t' }, tr('بین هر خط چند ثانیه مکث هست و تا ۳۰ خط در هر بار. اطلاعات از iTunes Search.'))) });
   }
   // پر شدن خودکار موزیک: وقتی سایت باز می‌شه، خط به خط ادامه پیدا می‌کنه (پیشرفت ذخیره می‌شه تا اگه صفحه بسته شد از همون‌جا ادامه بده)
+  const hasMusicData = () => Array.isArray(window.DM_MUSIC) && window.DM_MUSIC.length > 0;
+  const musicPending = () => {
+    if (hasMusicData()) return false;
+    try { return Number(localStorage.getItem('dm:autofill-music-p') || 0) < MU_W.length + MU_I.length; } catch (e) { return false; }
+  };
+  // ساخت فایل music-data.js (یک بار): همه‌ی آهنگ‌ها رو می‌گیره و به‌صورت فایل می‌ده تا کنار سایت آپلود بشه
+  async function buildMusicFile() {
+    if (!isAdmin()) return;
+    const msg = el('p', { class: 'cm-t' }, tr('در حال گرفتن اطلاعات... تا ۲ دقیقه طول می‌کشه. این پنجره رو نبند.'));
+    openModal({ title: tr('ساخت فایل داده‌ی موزیک'), actions: [], content: el('div', {}, msg) });
+    const out = [], say = (p) => (n, t, l) => { msg.textContent = tr(p) + ' ' + (n + 1) + '/' + t + ' — ' + l; };
+    await bulkImport(MU_W, 'world', 8, say('جهان'), out);
+    await bulkImport(MU_I, 'iran', 8, say('ایران'), out);
+    if (!out.length) { msg.textContent = tr('چیزی گرفته نشد. اتصال اینترنت رو چک کن و دوباره امتحان کن.'); return; }
+    const js = '/* ساخته‌شده با iTunes Search */\nwindow.DM_MUSIC = ' + JSON.stringify(out) + ';\n';
+    const a = el('a', { class: 'btn primary', download: 'music-data.js', href: URL.createObjectURL(new Blob([js], { type: 'text/javascript' })) }, tr('دانلود music-data.js'));
+    msg.replaceChildren(el('p', {}, out.length + ' ' + tr('آهنگ آماده شد. فایل رو کنار index.html بذار و دوباره سایت رو آپلود کن.')), a);
+  }
   let autoRunning = false;
   async function autoFillMusic() {
-    if (autoRunning) return;
+    if (autoRunning || hasMusicData()) return;
     if (!isAdmin() && !(Api.items && typeof Api.items.seedMany === 'function')) return;
     const todo = MU_W.map((x) => ['world', x]).concat(MU_I.map((x) => ['iran', x]));
     let p = 0;
@@ -2215,7 +2236,7 @@
     const parts = [
       el('div', { class: 'cv-top' }, el('a', { class: 'cv-back', href: '#', 'aria-label': tr('بازگشت'), html: I_BACK }), el('div', { class: 'cv-ic ' + c.cls, html: catIcon('music') }),
         el('div', { class: 'cv-t' }, el('h2', {}, tr(c.fa)), el('small', {}, tr(c.sub))), pb('افزودن', () => openItemForm(null, { cat: 'music' }))),
-      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')), pb('وارد کردن از اینترنت', () => openImport('music')), pb('افزودن دسته‌ای (اسم خواننده‌ها)', () => openBulk()))];
+      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')), pb('وارد کردن از اینترنت', () => openImport('music')), pb('افزودن دسته‌ای (اسم خواننده‌ها)', () => openBulk()), pb('ساخت فایل داده‌ی موزیک', () => buildMusicFile()))];
     const head = (t, s) => el('div', { class: 'mu-h' }, el('h3', {}, tr(t)), s ? el('small', {}, tr(s)) : null);
     const REG = [['iran', 'ایران', '🇮🇷'], ['world', 'جهان', '🌍'], ['', 'سایر', '🎵']];
     const rows = (pick, mk) => REG.forEach((r) => {
@@ -2234,7 +2255,10 @@
     const seen = new Set(), sing = [];
     all.forEach((i) => { const a = (i.artist || '').trim(); if (a && !seen.has(a)) { seen.add(a); sing.push(i); } });
     if (sing.length) { parts.push(head('خوانندگان', '(محبوب‌ترین‌ها)')); rows((k) => sing.filter((i) => inReg(i, k)), (i) => musicEl(i, true)); }
-    if (!all.length) parts.push(el('p', { class: 'empty' }, tr('هنوز آهنگی اضافه نشده.')));
+    if (!all.length && musicPending()) {
+      const sk = () => el('div', { class: 'rail mu-rail' }, Array.from({ length: 6 }, () => el('div', { class: 'mu-c' }, el('div', { class: 'mu-art sk' }), el('div', { class: 'sk-l' }))));
+      parts.push(head('جدیدترین‌ها', '(ویژه)'), el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, '🇮🇷 ' + tr('ایران'))), sk(), el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, '🌍 ' + tr('جهان'))), sk());
+    } else if (!all.length) parts.push(el('p', { class: 'empty' }, tr('هنوز آهنگی اضافه نشده.')));
     document.getElementById('catRoot').replaceChildren(...parts);
     document.title = tr(c.fa) + ' | ' + tr('دنیای من');
     autoFillMusic();

@@ -209,6 +209,15 @@
         write('cleaned-music-v2', true);
         write('seeded-music-v1', true);
       }
+      // داده‌ی آماده‌ی موزیک (music-data.js کنار index.html): از همون لحظه‌ی اول بدون انتظار نمایش داده می‌شه
+      if (!read('seeded-musicdata-v1', false) && Array.isArray(window.DM_MUSIC) && window.DM_MUSIC.length) {
+        all = all || read('items', []);
+        var nowM = Date.now();
+        window.DM_MUSIC.slice(0, 600).forEach(function (m, i) {
+          try { all.push(Object.assign({ id: 'mu-' + i, createdAt: nowM - i, updatedAt: nowM - i }, cleanItem(Object.assign({}, m, { cat: 'music' })))); } catch (e) { /* رد شد */ }
+        });
+        write('seeded-musicdata-v1', true);
+      }
       if (all) write('items', all);
     }
     var CATS = ['movies', 'series', 'animations', 'anime', 'games', 'music', 'apps'];
