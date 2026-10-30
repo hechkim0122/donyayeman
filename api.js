@@ -317,7 +317,10 @@
       var bg = String(s.bg || '');
       if (bg && !IMG_RE.test(bg)) throw fail('invalid');
       var ids = Array.isArray(s.ids) ? s.ids.map(String).slice(0, 80) : [];
-      return { cat: s.cat === 'animations' ? 'animations' : 'movies', kind: s.kind === 'collection' ? 'collection' : s.kind === 'single' ? 'single' : 'row', title: title, genre: genre, ids: s.kind === 'single' ? ids.slice(0, 1) : ids, bg: bg };
+      return { cat: ['movies', 'animations', 'series', 'music'].indexOf(s.cat) >= 0 ? s.cat : 'movies',
+               kind: s.kind === 'collection' ? 'collection' : s.kind === 'single' ? 'single' : s.kind === 'playlist' ? 'playlist' : 'row',
+               title: title, genre: genre, ids: s.kind === 'single' ? ids.slice(0, 1) : ids, bg: bg,
+               sub: String(s.sub || '').trim().slice(0, 60), region: s.region === 'iran' || s.region === 'world' ? s.region : '', style: s.style === 'card' ? 'card' : 'tile' };
     }
     function seedShelves() {
       seedItems();
