@@ -2128,6 +2128,7 @@
     const art = (u) => String(u || '').replace(/\d+x\d+bb/, '600x600bb');
     const have = new Set(state.items.filter((i) => i.cat === 'music').map((i) => (i.title + '|' + (i.artist || '')).toLowerCase()));
     let added = 0;
+    const saveOne = (x) => (isAdmin() ? Api.items.save(x) : Api.items.seedMany([x]));
     for (let n = 0; n < lines.length; n++) {
       if (onLine) onLine(n, lines.length, lines[n]);
       try {
@@ -2141,7 +2142,7 @@
           have.add(key);
           const cover = art(r.artworkUrl100), link = String(r.trackViewUrl || '');
           try {
-            await Api.items.save({ cat: 'music', title: String(r.trackName).slice(0, 120), artist: String(r.artistName || '').slice(0, 80), region, hot: k === 0,
+            await saveOne({ cat: 'music', title: String(r.trackName).slice(0, 120), artist: String(r.artistName || '').slice(0, 80), region, hot: k === 0,
               desc: String(r.collectionName || ''), year: String(r.releaseDate || '').slice(0, 4), cover: IMG_SRC_RE.test(cover) ? cover : '', link: HTTP_RE.test(link) ? link : '', fresh: false });
             added++;
           } catch (e) { /* ردش کن */ }
@@ -2171,26 +2172,27 @@
         el('div', { class: 'fld' }, el('label', {}, tr('تعداد آهنگ از هر خط')), per), msg,
         el('small', { class: 'cm-t' }, tr('بین هر خط چند ثانیه مکث هست و تا ۳۰ خط در هر بار. اطلاعات از iTunes Search.'))) });
   }
-  // پر شدن خودکار: بار اول که مدیر وارد بخش موزیک می‌شه (فقط یک بار، و فقط اگه هنوز آهنگ واقعی نیست)
+  // پر شدن خودکار موزیک: وقتی سایت باز می‌شه، خط به خط ادامه پیدا می‌کنه (پیشرفت ذخیره می‌شه تا اگه صفحه بسته شد از همون‌جا ادامه بده)
   let autoRunning = false;
   async function autoFillMusic() {
-    if (autoRunning || !isAdmin()) return;
-    try { if (localStorage.getItem('dm:autofill-music-v1')) return; localStorage.setItem('dm:autofill-music-v1', '1'); } catch (e) { return; }
-    const isDemo = (i) => /^(demo-|seed-)/.test(String(i.id));
-    if (state.items.some((i) => i.cat === 'music' && !isDemo(i))) return;
-    autoRunning = true; toast(tr('موزیک داره خودکار پر می‌شه. چند دقیقه صبر کن و صفحه رو نبند.'));
+    if (autoRunning) return;
+    if (!isAdmin() && !(Api.items && typeof Api.items.seedMany === 'function')) return;
+    const todo = MU_W.map((x) => ['world', x]).concat(MU_I.map((x) => ['iran', x]));
+    let p = 0;
+    try { p = Number(localStorage.getItem('dm:autofill-music-p') || 0); } catch (e) { return; }
+    if (p >= todo.length) return;
+    if (p === 0 && state.items.some((i) => i.cat === 'music')) { try { localStorage.setItem('dm:autofill-music-p', String(todo.length)); } catch (e) { /* مهم نیست */ } return; }
+    autoRunning = true;
     let added = 0;
     try {
-      const live = async (n) => { if (n > 0) await refresh(); };
-      added += await bulkImport(MU_W, 'world', 8, live);
-      added += await bulkImport(MU_I, 'iran', 8, live);
-      if (added > 0) {
-        for (const i of state.items.filter((x) => x.cat === 'music' && isDemo(x))) { try { await Api.items.remove(i.id); } catch (e) { /* مهم نیست */ } }
-        for (const id of ['demo-shelf-music-single', 'demo-shelf-music-row']) { try { await Api.shelves.remove(id); } catch (e) { /* مهم نیست */ } }
+      for (; p < todo.length; p++) {
+        added += await bulkImport([todo[p][1]], todo[p][0], 8);
+        try { localStorage.setItem('dm:autofill-music-p', String(p + 1)); } catch (e) { /* مهم نیست */ }
+        if (added > 0) await refresh();
+        await new Promise((r) => setTimeout(r, 3200));
       }
     } catch (e) { /* مهم نیست */ }
     autoRunning = false;
-    await refresh(); toast(added + ' ' + tr('آهنگ اضافه شد.'));
   }
 
   function musicEl(it, round) {
@@ -2847,6 +2849,7 @@
     try { was = sessionStorage.getItem('dm:editing') === '1'; } catch (e) { /* مهم نیست */ }
     if (isAdmin() && was) setEditing(true);
     route();
+    autoFillMusic();
   })();
 
   applyLang();

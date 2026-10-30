@@ -202,20 +202,11 @@
         write('shelves', shl);
         write('seeded-demo-v1', true);
       }
-      if (!read('seeded-music-v1', false)) {
-        all = (all || read('items', [])).filter(function (x) { return String(x.id).indexOf('demo-music-') !== 0; });
-        var mu = [['شب بی‌ستاره', 'آرمان رها', 'iran', 1], ['یادت رفته', 'نیلوفر شمس', 'iran', 0], ['دوتایی', 'سینا آریا', 'iran', 1], ['رقص باران', 'آرمان رها', 'iran', 0],
-                  ["Don't Look Back", 'Luna Ray', 'world', 1], ['Gel Gel', 'Mert Aksoy', 'world', 0], ['Blue Hour', 'Luna Ray', 'world', 1], ['Sunset Drive', 'Kai Morgan', 'world', 0]];
-        var mids = mu.map(function (m, i) {
-          var id = 'demo-mu-' + i;
-          all.push({ id: id, cat: 'music', title: m[0], artist: m[1], region: m[2], hot: !!m[3], desc: 'این یک آهنگ نمونه است. از پنل مدیر می‌تونی ویرایشش کنی یا حذفش کنی.',
-                     year: '2025', cover: '', link: 'https://example.com/listen', file: null, fresh: false, createdAt: 800 - i, updatedAt: 800 - i });
-          return id;
-        });
-        var shl2 = read('shelves', []);
-        shl2.push({ id: 'demo-shelf-music-single', cat: 'music', kind: 'single', title: 'ترندهای شبکه‌های اجتماعی', genre: '', ids: [mids[0]], bg: '', createdAt: 3200, updatedAt: t },
-                  { id: 'demo-shelf-music-row', cat: 'music', kind: 'row', title: 'پلی‌لیست رقص و پارتی', genre: '', ids: mids.slice(2, 7), bg: '', createdAt: 3201, updatedAt: t });
-        write('shelves', shl2);
+      // نمونه‌های ساختگی موزیک پاک می‌شن (موزیک با اطلاعات واقعی از iTunes پر می‌شه)
+      if (!read('cleaned-music-v2', false)) {
+        all = (all || read('items', [])).filter(function (x) { return !(x.cat === 'music' && /^(demo-|seed-|sample-)/.test(String(x.id))); });
+        write('shelves', read('shelves', []).filter(function (x) { return String(x.id).indexOf('demo-shelf-music') !== 0; }));
+        write('cleaned-music-v2', true);
         write('seeded-music-v1', true);
       }
       if (all) write('items', all);
@@ -289,6 +280,16 @@
         }
         write('items', all);
         return out;
+      },
+      // فقط حالت local: برای پر شدن خودکار موزیک بدون ورود مدیر؛ هر مورد از cleanItem رد می‌شه
+      async seedMany(list) {
+        seedItems();
+        var all = read('items', []), now = Date.now(), n = 0;
+        (list || []).slice(0, 200).forEach(function (it) {
+          try { all.push(Object.assign({ id: uid(), createdAt: now - n, updatedAt: now }, cleanItem(it))); n++; } catch (e) { /* رد شد */ }
+        });
+        write('items', all);
+        return n;
       },
       async remove(id) {
         needAdmin();
