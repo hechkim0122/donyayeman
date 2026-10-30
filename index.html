@@ -2074,8 +2074,9 @@
   }
 
   // وارد کردن از iTunes Search (موزیک و برنامه‌های iOS). این سرویس CORS نداره، برای همین از JSONP استفاده می‌شه
+  let jsonpN = 0;
   const jsonp = (url) => new Promise((res, rej) => {
-    const cb = 'dmj' + Date.now() + Math.floor(Math.random() * 1e4), s = document.createElement('script');
+    const cb = 'dmj' + Date.now() + '_' + (jsonpN++), s = document.createElement('script');
     const done = () => { delete window[cb]; s.remove(); clearTimeout(t); };
     const t = setTimeout(() => { done(); rej(new Error('timeout')); }, 10000);
     window[cb] = (d) => { done(); res(d); };
@@ -2179,7 +2180,7 @@
   const hasMusicData = () => Array.isArray(window.DM_MUSIC) && window.DM_MUSIC.length > 0;
   const musicPending = () => {
     if (hasMusicData()) return false;
-    try { return Number(localStorage.getItem('dm:autofill-music-p') || 0) < MU_W.length + MU_I.length; } catch (e) { return false; }
+    try { return Number(localStorage.getItem('dm:autofill-music-p') || 0) < 1; } catch (e) { return false; }
   };
   // ساخت فایل music-data.js (یک بار): همه‌ی آهنگ‌ها رو می‌گیره و به‌صورت فایل می‌ده تا کنار سایت آپلود بشه
   async function buildMusicFile() {
@@ -2191,25 +2192,44 @@
     await bulkImport(MU_I, 'iran', 8, say('ایران'), out);
     if (!out.length) { msg.textContent = tr('چیزی گرفته نشد. اتصال اینترنت رو چک کن و دوباره امتحان کن.'); return; }
     const js = '/* ساخته‌شده با iTunes Search */\nwindow.DM_MUSIC = ' + JSON.stringify(out) + ';\n';
-    const a = el('a', { class: 'btn primary', download: 'music-data.js', href: URL.createObjectURL(new Blob([js], { type: 'text/javascript' })) }, tr('دانلود music-data.js'));
-    msg.replaceChildren(el('p', {}, out.length + ' ' + tr('آهنگ آماده شد. فایل رو کنار index.html بذار و دوباره سایت رو آپلود کن.')), a);
+    const a = el('a', { class: 'btn primary', download: 'music-data.js', href: 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js) }, tr('دانلود music-data.js'));
+    const ta = el('textarea', { rows: 5, readonly: true, style: 'width:100%;direction:ltr;margin-top:10px' });
+    ta.value = js;
+    const cp = el('button', { type: 'button', class: 'btn ghost', onclick: async () => {
+      try { await navigator.clipboard.writeText(js); } catch (e) { ta.focus(); ta.select(); try { document.execCommand('copy'); } catch (e2) { /* مهم نیست */ } }
+      toast(tr('کپی شد.'));
+    } }, tr('کپی متن فایل'));
+    msg.replaceChildren(el('p', {}, out.length + ' ' + tr('آهنگ آماده شد. فایل رو کنار index.html بذار و دوباره سایت رو آپلود کن.')),
+      el('div', { class: 'imp-bar' }, a, cp), ta,
+      el('small', { class: 'cm-t' }, tr('اگه دانلود نشد: «کپی متن فایل» رو بزن و متن رو توی یه فایل به اسم music-data.js ذخیره کن.')));
   }
   let autoRunning = false;
   async function autoFillMusic() {
     if (autoRunning || hasMusicData()) return;
     if (!isAdmin() && !(Api.items && typeof Api.items.seedMany === 'function')) return;
-    const todo = MU_W.map((x) => ['world', x]).concat(MU_I.map((x) => ['iran', x]));
+    // موج اول: ۱۲ خواننده‌ی جهان و ۵ خواننده‌ی ایران همزمان (۱۷ درخواست در یک لحظه) تا صفحه‌ی موزیک تقریباً فوراً پر بشه
+    const burst = MU_W.slice(0, 12).map((x) => ['world', x]).concat(MU_I.slice(0, 5).map((x) => ['iran', x]));
+    const rest = MU_W.slice(12).map((x) => ['world', x]).concat(MU_I.slice(5).map((x) => ['iran', x]));
+    const total = burst.length + rest.length;
     let p = 0;
     try { p = Number(localStorage.getItem('dm:autofill-music-p') || 0); } catch (e) { return; }
-    if (p >= todo.length) return;
-    if (p === 0 && state.items.some((i) => i.cat === 'music')) { try { localStorage.setItem('dm:autofill-music-p', String(todo.length)); } catch (e) { /* مهم نیست */ } return; }
+    if (p >= total) return;
+    if (p === 0 && state.items.some((i) => i.cat === 'music')) { try { localStorage.setItem('dm:autofill-music-p', String(total)); } catch (e) { /* مهم نیست */ } return; }
+    const save = (n) => { try { localStorage.setItem('dm:autofill-music-p', String(n)); } catch (e) { /* مهم نیست */ } };
     autoRunning = true;
-    let added = 0;
     try {
-      for (; p < todo.length; p++) {
-        added += await bulkImport([todo[p][1]], todo[p][0], 8);
-        try { localStorage.setItem('dm:autofill-music-p', String(p + 1)); } catch (e) { /* مهم نیست */ }
-        if (added > 0) await refresh();
+      if (p < burst.length) {
+        await Promise.all(burst.map((x) => bulkImport([x[1]], x[0], 8)));
+        save(burst.length); p = burst.length;
+        await refresh();
+      }
+      // بقیه‌ی خواننده‌ها یواش‌یواش و بعد از یه مکث (iTunes حدود ۲۰ درخواست در دقیقه قبول می‌کنه)
+      if (p < total) await new Promise((r) => setTimeout(r, 62000));
+      for (; p < total; p++) {
+        const x = rest[p - burst.length];
+        const got = await bulkImport([x[1]], x[0], 8);
+        save(p + 1);
+        if (got > 0) await refresh();
         await new Promise((r) => setTimeout(r, 3200));
       }
     } catch (e) { /* مهم نیست */ }
