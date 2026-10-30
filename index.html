@@ -930,6 +930,45 @@
   .imp-r span { display: grid; min-width: 0; }
   .imp-r b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .imp-r small { color: var(--muted); }
+  /* موزیک: تب‌ها، پلیر و لیست */
+  .mu-tabs { display: flex; gap: 6px; margin: 14px 0 4px; padding: 4px; border-radius: 16px; background: rgba(255,255,255,.07); }
+  .mu-tab { flex: 1; padding: 10px 6px; border: 0; border-radius: 12px; background: none; color: var(--muted); font: inherit; font-weight: 800; cursor: pointer; }
+  .mu-tab[aria-selected="true"] { background: #f5c518; color: #1a1400; }
+  .mu-chips { display: flex; gap: 8px; margin: 14px 0 0; overflow-x: auto; scrollbar-width: none; }
+  .mu-fc { flex: none; padding: 8px 16px; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; background: none; color: #fff; font: inherit; cursor: pointer; }
+  .mu-fc[aria-pressed="true"] { background: #fff; color: #111; }
+  .mu-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .mu-tile { display: grid; align-content: space-between; justify-items: center; gap: 6px; min-height: 118px; padding: 16px 12px; border: 0; border-radius: 18px; color: #fff; font: inherit; font-weight: 900; font-size: 20px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+  .mu-tile span { font-size: 32px; }
+  .mu-tile small { font-weight: 600; font-size: 12px; opacity: .92; }
+  .mu-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .mu-rart { position: relative; flex: none; width: 54px; height: 54px; border-radius: 10px; overflow: hidden; display: grid; place-items: center; color: #fff; }
+  .mu-rart img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .mu-rart > svg { width: 50%; height: 50%; stroke: currentColor; }
+  .mu-ri { flex: 1; min-width: 0; display: grid; cursor: pointer; }
+  .mu-ri b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+  .mu-ri small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mu-pl, .pl-b { flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: #f5c518; color: #1a1400; cursor: pointer; }
+  .mu-pl { width: 40px; height: 40px; }
+  .mu-pl svg, .pl-b svg { width: 18px; height: 18px; }
+  .mu-pl.on { background: #fff; }
+  .mu-pb { position: absolute; inset-block-end: 8px; inset-inline-start: 8px; width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(0,0,0,.62); color: #fff; cursor: pointer; }
+  .mu-pb svg { width: 15px; height: 15px; }
+  .mu-pb.on { background: #f5c518; color: #1a1400; }
+  .mu-player { position: sticky; top: 8px; z-index: 30; display: none; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 10px; margin: 10px 0; padding: 8px 10px; border-radius: 16px; background: rgba(30,24,60,.97); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+  .mu-player img, .pl-ph { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; background: #5b2bd6; }
+  .pl-i { display: grid; min-width: 0; }
+  .pl-i b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+  .pl-i small { color: var(--muted); }
+  .pl-b { width: 44px; height: 44px; }
+  .pl-b svg { width: 20px; height: 20px; }
+  .pl-bar { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.16); }
+  .pl-bar i { display: block; height: 100%; width: 0; border-radius: 2px; background: #f5c518; }
+  .mu-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin: 16px 0; }
+  .mu-sub { display: flex; align-items: center; gap: 10px; margin: 18px 0 6px; }
+  .mu-sub h3 { margin: 0; font-size: 22px; font-weight: 900; color: #fff; }
+  .mu-sub small { color: var(--muted); }
+  .mu-search { width: 100%; height: 48px; margin: 16px 0 8px; padding: 0 16px; border-radius: 14px; border: 1.5px solid rgba(255,255,255,.22); background: rgba(255,255,255,.08); color: #fff; font: inherit; }
   .mv-full { margin: 0; line-height: 2.05; color: #e8e0fa; font-size: 15px; white-space: pre-wrap; }
   .ep-top { margin-bottom: 8px; }
   .ep-sel { height: 42px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-weight: 700; }
@@ -2147,7 +2186,8 @@
           have.add(key);
           const cover = art(r.artworkUrl100), link = String(r.trackViewUrl || '');
           const rec = { cat: 'music', title: String(r.trackName).slice(0, 120), artist: String(r.artistName || '').slice(0, 80), region, hot: k === 0,
-            desc: String(r.collectionName || ''), year: String(r.releaseDate || '').slice(0, 4), cover: IMG_SRC_RE.test(cover) ? cover : '', link: HTTP_RE.test(link) ? link : '', fresh: false };
+            desc: String(r.collectionName || ''), year: String(r.releaseDate || '').slice(0, 4), cover: IMG_SRC_RE.test(cover) ? cover : '', link: HTTP_RE.test(link) ? link : '', fresh: false,
+            preview: HTTP_RE.test(String(r.previewUrl || '')) ? String(r.previewUrl) : '' };
           if (collect) { collect.push(rec); added++; continue; }
           try { await saveOne(rec); added++; } catch (e) { /* ردش کن */ }
         }
@@ -2240,53 +2280,131 @@
     const hue = Array.from(String(it.id || '')).reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360;
     const art = el('div', { class: 'mu-art' + (round ? ' round' : ''), style: 'background:linear-gradient(145deg,hsl(' + hue + ',70%,46%),hsl(' + ((hue + 50) % 360) + ',70%,24%))' });
     if (it.cover) art.append(el('img', { src: it.cover, alt: '', loading: 'lazy' })); else art.innerHTML = catIcon('music');
+    if (!round && HTTP_RE.test(it.preview || '')) art.append(el('button', { type: 'button', class: 'mu-pb', 'data-pid': it.id, 'aria-label': tr('پخش پیش‌نمایش'), html: I_PLAYI, onclick: (e) => { e.stopPropagation(); muPlay(it); } }));
     if (isAdmin()) art.append(el('div', { class: 'ed-tools' },
       el('button', { type: 'button', 'aria-label': tr('ویرایش'), html: I_PEN, onclick: (e) => { e.stopPropagation(); openItemForm(it); } }),
       el('button', { type: 'button', class: 'del', 'aria-label': tr('حذف'), html: I_TRASH, onclick: (e) => { e.stopPropagation(); deleteItem(it); } })));
-    const open = () => showDetail(it.artist ? Object.assign({}, it, { title: it.title + ' — ' + it.artist }) : it);
+    const open = () => (round && it.artist ? muGo('artist', it.artist) : showDetail(it.artist ? Object.assign({}, it, { title: it.title + ' — ' + it.artist }) : it));
     const card = el('article', { class: 'mu-c' + (round ? ' round' : ''), tabindex: 0, role: 'button', 'aria-label': it.title, onclick: open,
       onkeydown: (e) => { if (e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } } },
       art, el('div', { class: 'mu-t' }, round ? (it.artist || it.title) : it.title), round ? null : el('div', { class: 'mu-a' }, it.artist || ''));
     return card;
   }
 
+  const I_PLAYI = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const I_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+  let muTab = 'home', muSub = '', muReg = '', muAudio = null, muNow = null;
+  const muGo = (tab, sub) => { muTab = tab; muSub = sub || ''; renderMusic(); window.scrollTo({ top: 0 }); };
+  function drawPlayer() {
+    const playing = !!(muNow && muAudio && !muAudio.paused);
+    document.querySelectorAll('[data-pid]').forEach((b) => { const on = playing && muNow && b.getAttribute('data-pid') === muNow.id; b.classList.toggle('on', on); b.innerHTML = on ? I_PAUSE : I_PLAYI; });
+    const p = document.getElementById('muPlayer');
+    if (!p) return;
+    if (!muNow) { p.style.display = 'none'; return; }
+    p.style.display = 'grid';
+    p.replaceChildren(muNow.cover ? el('img', { src: muNow.cover, alt: '' }) : el('span', { class: 'pl-ph' }),
+      el('div', { class: 'pl-i' }, el('b', {}, muNow.title), el('small', {}, muNow.artist || '')),
+      el('button', { type: 'button', class: 'pl-b', 'aria-label': tr('پخش یا توقف'), html: playing ? I_PAUSE : I_PLAYI, onclick: () => muPlay(muNow) }),
+      el('div', { class: 'pl-bar' }, el('i', { id: 'muBar' })));
+  }
+  function muPlay(it) {
+    if (!HTTP_RE.test(it.preview || '')) return;
+    if (muNow && muNow.id === it.id && muAudio) { if (muAudio.paused) muAudio.play().catch(() => {}); else muAudio.pause(); drawPlayer(); return; }
+    if (muAudio) muAudio.pause();
+    muNow = it; muAudio = new Audio(it.preview);
+    muAudio.addEventListener('ended', drawPlayer); muAudio.addEventListener('pause', drawPlayer); muAudio.addEventListener('play', drawPlayer);
+    muAudio.addEventListener('timeupdate', () => { const b = document.getElementById('muBar'); if (b && muAudio.duration) b.style.width = (muAudio.currentTime / muAudio.duration * 100) + '%'; });
+    muAudio.play().catch(() => toast(tr('پخش نشد.')));
+    drawPlayer();
+  }
+  function musicRow(it) {
+    const hue = Array.from(String(it.id || '')).reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360;
+    const art = el('div', { class: 'mu-rart', style: 'background:linear-gradient(145deg,hsl(' + hue + ',70%,46%),hsl(' + ((hue + 50) % 360) + ',70%,24%))' });
+    if (it.cover) art.append(el('img', { src: it.cover, alt: '', loading: 'lazy' })); else art.innerHTML = catIcon('music');
+    const open = () => showDetail(it.artist ? Object.assign({}, it, { title: it.title + ' — ' + it.artist }) : it);
+    return el('div', { class: 'mu-row' }, art, el('div', { class: 'mu-ri', onclick: open }, el('b', {}, it.title), el('small', {}, [it.artist, it.year].filter(Boolean).join(' • '))),
+      HTTP_RE.test(it.preview || '') ? el('button', { type: 'button', class: 'mu-pl', 'data-pid': it.id, 'aria-label': tr('پخش پیش‌نمایش'), html: I_PLAYI, onclick: () => muPlay(it) }) : null,
+      isAdmin() ? el('div', { class: 'ed-tools', style: 'position:static;display:flex;gap:6px' },
+        el('button', { type: 'button', 'aria-label': tr('ویرایش'), html: I_PEN, onclick: () => openItemForm(it) }),
+        el('button', { type: 'button', class: 'del', 'aria-label': tr('حذف'), html: I_TRASH, onclick: () => deleteItem(it) })) : null);
+  }
+
   function renderMusic() {
     const c = CATS.music, all = state.items.filter((i) => i.cat === 'music');
     const pb = (t, f) => el('button', { type: 'button', class: 'ed-btn', onclick: f }, el('span', { html: I_PLUS }), tr(t));
+    const inReg = (i, k) => (i.region || '') === k;
+    const REG = [['iran', 'ایران', '🇮🇷'], ['world', 'جهان', '🌍'], ['', 'سایر', '🎵']];
+    const head = (t, s) => el('div', { class: 'mu-h' }, el('h3', {}, tr(t)), s ? el('small', {}, tr(s)) : null);
+    const artists = () => { const seen = new Set(), out = []; all.forEach((i) => { const a = (i.artist || '').trim(); if (a && !seen.has(a)) { seen.add(a); out.push(i); } }); return out; };
     const parts = [
       el('div', { class: 'cv-top' }, el('a', { class: 'cv-back', href: '#', 'aria-label': tr('بازگشت'), html: I_BACK }), el('div', { class: 'cv-ic ' + c.cls, html: catIcon('music') }),
-        el('div', { class: 'cv-t' }, el('h2', {}, tr(c.fa)), el('small', {}, tr(c.sub))), pb('افزودن', () => openItemForm(null, { cat: 'music' }))),
-      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')), pb('وارد کردن از اینترنت', () => openImport('music')), pb('افزودن دسته‌ای (اسم خواننده‌ها)', () => openBulk()), pb('ساخت فایل داده‌ی موزیک', () => buildMusicFile()))];
-    const head = (t, s) => el('div', { class: 'mu-h' }, el('h3', {}, tr(t)), s ? el('small', {}, tr(s)) : null);
-    const REG = [['iran', 'ایران', '🇮🇷'], ['world', 'جهان', '🌍'], ['', 'سایر', '🎵']];
+        el('div', { class: 'cv-t' }, el('h2', {}, tr(c.fa)), el('small', {}, all.length ? all.length + ' ' + tr('آهنگ از ایران و جهان') : tr(c.sub))), pb('افزودن', () => openItemForm(null, { cat: 'music' }))),
+      el('div', { class: 'bn-admin' }, pb('افزودن آهنگ', () => openItemForm(null, { cat: 'music' })), pb('افزودن پلی‌لیست بنری (تک)', () => openShelfForm(null, 'single')), pb('افزودن پلی‌لیست', () => openShelfForm(null, 'row')),
+        pb('وارد کردن از اینترنت', () => openImport('music')), pb('افزودن دسته‌ای (اسم خواننده‌ها)', () => openBulk()), pb('ساخت فایل داده‌ی موزیک', () => buildMusicFile())),
+      el('div', { class: 'mu-tabs', role: 'tablist' }, [['home', 'خانه'], ['search', 'جستجو'], ['browse', 'پلی‌لیست‌ها']].map((t) =>
+        el('button', { type: 'button', role: 'tab', class: 'mu-tab', 'aria-selected': String(muTab === t[0] || (t[0] === 'browse' && (muTab === 'list' || muTab === 'artist'))), onclick: () => muGo(t[0]) }, tr(t[1])))),
+      el('div', { id: 'muPlayer', class: 'mu-player' })];
     const rows = (pick, mk) => REG.forEach((r) => {
+      if (muReg !== '' && r[0] !== muReg) return;
       const l = pick(r[0]); if (!l.length) return;
       const rail = el('div', { class: 'rail mu-rail' }, l.map(mk));
       parts.push(el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, r[2] + ' ' + tr(r[1])),
         el('button', { type: 'button', class: 'mu-all', onclick: () => rail.classList.toggle('mu-wrap') }, tr('دیدن همه'), el('span', { html: I_CHEV }))), rail);
     });
-    const inReg = (i, k) => (i.region || '') === k;
-    if (all.length) { parts.push(head('جدیدترین‌ها', '(ویژه)')); rows((k) => all.filter((i) => inReg(i, k)), (i) => musicEl(i)); }
-    if (all.some((i) => i.hot)) { parts.push(head('محبوب‌ترین‌ها')); rows((k) => all.filter((i) => i.hot && inReg(i, k)), (i) => musicEl(i)); }
-    state.shelves.filter((s) => s.cat === 'music').forEach((sh) => {
-      const l = (sh.ids || []).map((id) => all.find((i) => i.id === id)).filter(Boolean);
-      if (l.length || isAdmin()) parts.push(shelfEl(sh, l, true));
-    });
-    const seen = new Set(), sing = [];
-    all.forEach((i) => { const a = (i.artist || '').trim(); if (a && !seen.has(a)) { seen.add(a); sing.push(i); } });
-    if (sing.length) { parts.push(head('خوانندگان', '(محبوب‌ترین‌ها)')); rows((k) => sing.filter((i) => inReg(i, k)), (i) => musicEl(i, true)); }
-    if (!all.length && musicPending()) {
-      const sk = () => el('div', { class: 'rail mu-rail' }, Array.from({ length: 6 }, () => el('div', { class: 'mu-c' }, el('div', { class: 'mu-art sk' }), el('div', { class: 'sk-l' }))));
-      parts.push(head('جدیدترین‌ها', '(ویژه)'), el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, '🇮🇷 ' + tr('ایران'))), sk(), el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, '🌍 ' + tr('جهان'))), sk());
-    } else if (!all.length) parts.push(el('p', { class: 'empty' }, tr('هنوز آهنگی اضافه نشده.')));
-    document.getElementById('catRoot').replaceChildren(...parts);
+    const shelfOf = (sh) => { const l = (sh.ids || []).map((id) => all.find((i) => i.id === id)).filter(Boolean); return (l.length || isAdmin()) ? shelfEl(sh, l, true) : null; };
+    const shelves = state.shelves.filter((s) => s.cat === 'music');
+    const backBar = (title, sub) => el('div', { class: 'mu-sub' }, el('button', { type: 'button', class: 'mu-fc', onclick: () => muGo('browse') }, '‹ ' + tr('بازگشت')), el('h3', {}, title), sub ? el('small', {}, sub) : null);
+
+    if (muTab === 'search') {
+      const res = el('div', {});
+      const q = el('input', { class: 'mu-search', type: 'search', placeholder: tr('اسم آهنگ یا خواننده...'), 'aria-label': tr('جستجو') });
+      const draw = () => {
+        const t = q.value.trim().toLowerCase();
+        const l = t ? all.filter((i) => (i.title + ' ' + (i.artist || '')).toLowerCase().includes(t)).slice(0, 60) : [];
+        res.replaceChildren(...(t ? (l.length ? l.map(musicRow) : [el('p', { class: 'empty' }, tr('نتیجه‌ای پیدا نشد.'))]) : [el('p', { class: 'empty' }, tr('اسم آهنگ یا خواننده رو بنویس.'))]));
+        drawPlayer();
+      };
+      q.addEventListener('input', draw); parts.push(q, res); draw();
+    } else if (muTab === 'browse') {
+      const cnt = (n) => n + ' ' + tr('آهنگ');
+      const TILES = [['iran', 'ایران', '🇮🇷', 'linear-gradient(135deg,#f0716a,#b3001b)', all.filter((i) => inReg(i, 'iran')).length],
+        ['world', 'جهان', '🌍', 'linear-gradient(135deg,#ffc12e,#d9730d)', all.filter((i) => inReg(i, 'world')).length],
+        ['hot', 'محبوب‌ها', '🔥', 'linear-gradient(135deg,#7a4bff,#4636d6)', all.filter((i) => i.hot).length],
+        ['artists', 'هنرمندان', '🎤', 'linear-gradient(135deg,#ff7eb3,#c2336f)', artists().length]];
+      parts.push(el('div', { class: 'mu-tiles' }, TILES.map((t) => el('button', { type: 'button', class: 'mu-tile', style: 'background:' + t[3], onclick: () => muGo('list', t[0]) }, el('span', {}, t[2]), tr(t[1]), el('small', {}, t[0] === 'artists' ? t[4] + ' ' + tr('هنرمند') : cnt(t[4]))))));
+      if (shelves.length) parts.push(head('پلی‌لیست‌ها', 'مجموعه‌ای از پلی‌لیست‌های پربازدید'));
+      shelves.forEach((sh) => parts.push(shelfOf(sh)));
+    } else if (muTab === 'list') {
+      const T = { iran: 'ایران', world: 'جهان', hot: 'محبوب‌ها', artists: 'هنرمندان' };
+      if (muSub === 'artists') { const a = artists(); parts.push(backBar(tr(T.artists), a.length + ''), el('div', { class: 'mu-grid' }, a.map((i) => musicEl(i, true)))); }
+      else { const l = muSub === 'hot' ? all.filter((i) => i.hot) : all.filter((i) => inReg(i, muSub)); parts.push(backBar(tr(T[muSub] || ''), l.length + ' ' + tr('آهنگ')), el('div', {}, l.length ? l.map(musicRow) : [el('p', { class: 'empty' }, tr('هنوز آهنگی نیست.'))])); }
+    } else if (muTab === 'artist') {
+      const l = all.filter((i) => (i.artist || '').trim() === muSub);
+      parts.push(backBar(muSub, l.length + ' ' + tr('آهنگ')), el('div', {}, l.length ? l.map(musicRow) : [el('p', { class: 'empty' }, tr('هنوز آهنگی نیست.'))]));
+    } else {
+      parts.push(el('div', { class: 'mu-chips' }, [['', 'همه'], ['iran', '🇮🇷 ایران'], ['world', '🌍 جهان']].map((t) =>
+        el('button', { type: 'button', class: 'mu-fc', 'aria-pressed': String(muReg === t[0]), onclick: () => { muReg = t[0]; renderMusic(); } }, tr(t[1])))));
+      shelves.filter((s) => s.kind === 'single').forEach((sh) => parts.push(shelfOf(sh)));
+      if (all.length) { parts.push(head('جدیدترین‌ها', '(ویژه)')); rows((k) => all.filter((i) => inReg(i, k)), (i) => musicEl(i)); }
+      if (all.some((i) => i.hot)) { parts.push(head('محبوب‌ترین‌ها')); rows((k) => all.filter((i) => i.hot && inReg(i, k)), (i) => musicEl(i)); }
+      shelves.filter((s) => s.kind !== 'single').forEach((sh) => parts.push(shelfOf(sh)));
+      const sing = artists();
+      if (sing.length) { parts.push(head('خوانندگان', '(محبوب‌ترین‌ها)')); rows((k) => sing.filter((i) => inReg(i, k)), (i) => musicEl(i, true)); }
+      if (!all.length && musicPending()) {
+        const sk = () => el('div', { class: 'rail mu-rail' }, Array.from({ length: 6 }, () => el('div', { class: 'mu-c' }, el('div', { class: 'mu-art sk' }), el('div', { class: 'sk-l' }))));
+        parts.push(head('جدیدترین‌ها', '(ویژه)'), el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, '🇮🇷 ' + tr('ایران'))), sk(), el('div', { class: 'mu-rh' }, el('span', { class: 'mu-chip' }, '🌍 ' + tr('جهان'))), sk());
+      } else if (!all.length) parts.push(el('p', { class: 'empty' }, tr('هنوز آهنگی اضافه نشده.')));
+    }
+    document.getElementById('catRoot').replaceChildren(...parts.filter(Boolean));
     document.title = tr(c.fa) + ' | ' + tr('دنیای من');
+    drawPlayer();
     autoFillMusic();
   }
 
   function renderCat() {
     if (!curCat) return;
     stopBanner();
+    if (curCat !== 'music' && muAudio) { muAudio.pause(); muNow = null; }
     if (curCat === 'music') { renderMusic(); return; }
     const c = CATS[curCat], isMovies = RICH(curCat);
     const all = state.items.filter((i) => i.cat === curCat);
@@ -2749,7 +2867,7 @@
         await Api.items.save({ id: item && item.id, cat: fCat.value, title, desc: fDesc.value.trim(), year, cover, link, file: fileMeta, fresh: fFresh.checked,
           genre: isMv ? fGenre.value : '', imdb: isMv ? imdb : '', country: isMv ? fCountry.value.trim() : '', banner: isMv ? banner : '',
           titleEn: isMv ? fTitleEn.value.trim() : '', duration: isMv ? dur : '', age: isMv ? fAge.value : '', lang: isMv ? fLang.value.trim() : '', seasons: fCat.value === 'series' ? seasons : [],
-          artist: fCat.value === 'music' ? fArtist.value.trim() : '', region: fCat.value === 'music' ? fRegion.value : '', hot: fCat.value === 'music' && fHot.checked });
+          artist: fCat.value === 'music' ? fArtist.value.trim() : '', region: fCat.value === 'music' ? fRegion.value : '', hot: fCat.value === 'music' && fHot.checked, preview: fCat.value === 'music' ? (d.preview || '') : '' });
         closeModal(); await refresh(); toast(tr('ذخیره شد.'));
       } catch (e) { toast(errMsg(e)); saveBtn.disabled = false; }
     });

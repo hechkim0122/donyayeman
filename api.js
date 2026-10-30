@@ -262,7 +262,8 @@
                cover: cover, link: link, file: file, fresh: !!it.fresh,
                genre: genre, imdb: imdb, country: country, banner: banner,
                titleEn: titleEn, duration: duration, age: age, lang: lang, seasons: seasons,
-               artist: String(it.artist || '').trim().slice(0, 80), region: it.region === 'iran' || it.region === 'world' ? it.region : '', hot: !!it.hot };
+               artist: String(it.artist || '').trim().slice(0, 80), region: it.region === 'iran' || it.region === 'world' ? it.region : '', hot: !!it.hot,
+               preview: HTTP_RE.test(String(it.preview || '').trim()) ? String(it.preview).trim().slice(0, 400) : '' };
     }
     var items = {
       async list(q) {
